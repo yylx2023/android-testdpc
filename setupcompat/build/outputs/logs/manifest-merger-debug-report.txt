@@ -1,0 +1,33 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:17:1-30:12
+INJECTED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:17:1-30:12
+	package
+		ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:19:9-49
+		INJECTED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml
+	xmlns:tools
+		ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:18:9-55
+	xmlns:android
+		ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:17:11-69
+uses-sdk
+ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:21:5-17
+INJECTED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:21:5-17
+INJECTED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:21:5-17
+	android:targetSdkVersion
+		INJECTED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml
+queries
+ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:23:5-28:15
+	tools:node
+		ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:23:14-32
+intent#action:name:com.android.setupwizard.action.PARTNER_CUSTOMIZATION
+ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:24:9-26:18
+action#com.android.setupwizard.action.PARTNER_CUSTOMIZATION
+ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:25:13-91
+	android:name
+		ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:25:21-88
+provider
+ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:27:9-82
+	android:authorities
+		ADDED from /home/toor/hard/sdb/home/toor/project/yylx2023/android-testdpc/setupcompat/src/main/AndroidManifest.xml:27:19-79
