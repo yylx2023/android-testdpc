@@ -20,6 +20,7 @@ import android.Manifest;
 import android.R.id;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Build;
@@ -33,6 +34,8 @@ import com.afwsamples.testdpc.common.DumpableActivity;
 import com.afwsamples.testdpc.common.OnBackPressedHandler;
 import com.afwsamples.testdpc.policy.PolicyManagementFragment;
 import com.afwsamples.testdpc.search.PolicySearchFragment;
+import com.goofish.emm.VolumeButtonService;
+
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 
@@ -64,6 +67,8 @@ public class PolicyManagementActivity extends DumpableActivity
           .commit();
     }
     getFragmentManager().addOnBackStackChangedListener(this);
+
+//    startService(new Intent(this, VolumeButtonService.class));
   }
 
   @Override
