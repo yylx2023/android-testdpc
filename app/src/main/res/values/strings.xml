@@ -1292,4 +1292,6 @@
     <string name="credential_manager_policy_applied_toast">Policy has been applied</string>
     <string name="credential_manager_policy_title">Enter package name of Credential Provider</string>
 
+
+    <string name="emm_kiosk_mode">EMM 锁定模式</string>
 </resources>

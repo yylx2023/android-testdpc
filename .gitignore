@@ -6,3 +6,4 @@ bazel-testlogs
 .idea
 .gradle
 build/
+.gradle
