@@ -7,3 +7,4 @@ bazel-testlogs
 .gradle
 build/
 .gradle
+local.properties

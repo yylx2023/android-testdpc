@@ -1,16 +1,6 @@
 package com.goofish.emm;
 
-import com.afwsamples.testdpc.DeviceAdminReceiver;
-import com.afwsamples.testdpc.R;
-import com.afwsamples.testdpc.common.Util;
-import com.blankj.utilcode.util.PhoneUtils;
-import com.goofish.emm.locktask.KioskModeActivity;
-import com.goofish.emm.locktask.LockTaskAppInfoArrayAdapter;
-import com.goofish.emm.tutu.TutuUtil;
-import com.goofish.emm.util.DeviceUtil;
-
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.admin.DevicePolicyManager;
@@ -22,17 +12,43 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+
+import com.afwsamples.testdpc.DeviceAdminReceiver;
+import com.afwsamples.testdpc.R;
+import com.afwsamples.testdpc.common.Util;
+import com.azhon.appupdate.manager.DownloadManager;
+import com.blankj.utilcode.util.AppUtils;
+import com.goofish.emm.http.AccivationResponse;
+import com.goofish.emm.http.ActivationRequest;
+import com.goofish.emm.http.ApiService;
+import com.goofish.emm.http.NetCallback;
+import com.goofish.emm.http.NetworkManager;
+import com.goofish.emm.http.Resp;
+import com.goofish.emm.http.RetrofitClient;
+import com.goofish.emm.http.VersionCheckRequest;
+import com.goofish.emm.http.VersionCheckResponse;
+import com.goofish.emm.locktask.KioskModeActivity;
+import com.goofish.emm.locktask.LockTaskAppInfoArrayAdapter;
+import com.goofish.emm.tutu.TutuUtil;
+import com.goofish.emm.util.AppPref;
+import com.goofish.emm.util.DeviceUtil;
 
 import java.util.Collections;
 import java.util.List;
 
-import androidx.annotation.Nullable;
+import retrofit2.Call;
 
 public class EmmMainActivity extends Activity {
 
@@ -43,6 +59,8 @@ public class EmmMainActivity extends Activity {
     private DevicePolicyManager mDevicePolicyManager;
     private ComponentName mAdminComponentName;
 
+    private RelativeLayout relativeLayout;
+
     interface ManageLockTaskListCallback {
         void onPositiveButtonClicked(String[] lockTaskArray);
     }
@@ -52,40 +70,121 @@ public class EmmMainActivity extends Activity {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return;
         }
-
-
         mDevicePolicyManager.setPermissionGrantState(mAdminComponentName, getPackageName(), Manifest.permission.READ_PHONE_STATE, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED);
-
+        mDevicePolicyManager.setPermissionGrantState(mAdminComponentName, getPackageName(), Manifest.permission.SYSTEM_ALERT_WINDOW, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED);
     }
 
+    private void showDeviceOwnerAlertDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("APP尚未授权")
+                .setMessage("请先通过工具给app授权")
+                .setCancelable(false) // 点击对话框外部不消失
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        finish(); // 关闭Activity
+                    }
+                })
+                .create()
+                .show();
+    }
+
+    private void showTutuAlertDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("APP尚未安装")
+                .setMessage("请先安装说多多APP")
+                .setCancelable(false) // 点击对话框外部不消失
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        finish(); // 关闭Activity
+                    }
+                })
+                .create()
+                .show();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_emm_main);
+
 
         mPackageManager = getPackageManager();
 
         mAdminComponentName = DeviceAdminReceiver.getComponentName(this);
         mDevicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
 
+        // 检查是否是设备所有者
+        if (!mDevicePolicyManager.isDeviceOwnerApp(getPackageName())) {
+            showDeviceOwnerAlertDialog();
+            return; // 不继续执行后续代码
+        }
+
         grantPermission();
 
+        //检查说多多app是否安装
+        if (!AppUtils.isAppInstalled(TutuUtil.TUTU_PKG)) {
+            showTutuAlertDialog();
+        }
+
+        //设备已经激活
+        if (!TextUtils.isEmpty(AppPref.getInstance().getMMKV().decodeString("token"))){
+            startKioskMode(new String[]{TutuUtil.TUTU_PKG});
+            return;
+        }
+        //checkVersion();
+
         Button myButton = findViewById(R.id.my_button);
+        myButton.setText(DeviceUtil.getDeviceImei(this));
         myButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "Button clicked!");
 
-                showManageLockTaskListPrompt(
-                        R.string.kiosk_select_title,
-                        new ManageLockTaskListCallback() {
-                            @Override
-                            public void onPositiveButtonClicked(String[] lockTaskArray) {
-                                startKioskMode(lockTaskArray);
-                            }
-                        });
+                relativeLayout.setVisibility(View.VISIBLE); // 显示 ProgressBar
+                relativeLayout.setTooltipText("正在激活中请稍候～～～");
+                ApiService apiService = RetrofitClient.INSTANCE.getApiService();
+
+                ActivationRequest request = new ActivationRequest(DeviceUtil.getDeviceImei(EmmMainActivity.this));
+                Call<Resp.Common<AccivationResponse>> call = apiService.activate(request);
+                NetworkManager.INSTANCE.makeRequest(call, new NetCallback<AccivationResponse>() {
+                    @Override
+                    public void onSuccess(@NonNull Resp.Common<AccivationResponse> resp, @NonNull byte[] data) {
+                        Log.e("ggg", "ggg" + resp.getCode());
+                        relativeLayout.setVisibility(View.GONE); // 显示 ProgressBar
+                        //成功
+                        if (Resp.SUCCESS.equals(resp.getCode())) {
+                            AppPref.getInstance().getMMKV().encode("token", resp.getData().getToken());
+                            startKioskMode(new String[]{TutuUtil.TUTU_PKG});
+                        } else {
+
+                        }
+
+                    }
+
+                    @Override
+                    public void onNetError(int statusCode, @NonNull String msg) {
+                        relativeLayout.setVisibility(View.GONE); // 显示 ProgressBar
+                    }
+                });
+
+//                showManageLockTaskListPrompt(
+//                        R.string.kiosk_select_title,
+//                        new ManageLockTaskListCallback() {
+//                            @Override
+//                            public void onPositiveButtonClicked(String[] lockTaskArray) {
+//                                startKioskMode(lockTaskArray);
+//                            }
+                //     });
             }
         });
+
+        relativeLayout = findViewById(R.id.prl);
+
 
         Log.e(TAG, "imei = " + DeviceUtil.getDeviceImei(this));
     }

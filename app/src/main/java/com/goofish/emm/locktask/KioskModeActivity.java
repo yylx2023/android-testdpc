@@ -20,6 +20,22 @@ import com.afwsamples.testdpc.DeviceAdminReceiver;
 import com.afwsamples.testdpc.PolicyManagementActivity;
 import com.afwsamples.testdpc.R;
 import com.afwsamples.testdpc.common.Util;
+import com.azhon.appupdate.manager.DownloadManager;
+import com.blankj.utilcode.util.AppUtils;
+import com.goofish.emm.EmmApp;
+import com.goofish.emm.http.ApiService;
+import com.goofish.emm.http.NetCallback;
+import com.goofish.emm.http.NetworkManager;
+import com.goofish.emm.http.Resp;
+import com.goofish.emm.http.RetrofitClient;
+import com.goofish.emm.http.VersionCheckRequest;
+import com.goofish.emm.http.VersionCheckResponse;
+import com.goofish.emm.tutu.TutuUtil;
+import com.goofish.emm.util.DeviceUtil;
+import com.petterp.floatingx.FloatingX;
+import com.petterp.floatingx.assist.FxDisplayMode;
+import com.petterp.floatingx.assist.FxScopeType;
+import com.petterp.floatingx.assist.helper.FxAppHelper;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -50,12 +66,14 @@ import java.util.HashSet;
 import java.util.List;
 
 import static android.os.UserManager.DISALLOW_ADD_USER;
-import static android.os.UserManager.DISALLOW_ADJUST_VOLUME;
-import static android.os.UserManager.DISALLOW_DEBUGGING_FEATURES;
 import static android.os.UserManager.DISALLOW_FACTORY_RESET;
 import static android.os.UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA;
 import static android.os.UserManager.DISALLOW_SAFE_BOOT;
 import static android.os.UserManager.DISALLOW_UNINSTALL_APPS;
+
+import androidx.annotation.NonNull;
+
+import retrofit2.Call;
 
 /**
  * Shows the list of apps passed in the {@link #LOCKED_APP_PACKAGE_LIST} extra (or previously saved
@@ -82,7 +100,8 @@ public class KioskModeActivity extends Activity {
     public static final String LOCKED_APP_PACKAGE_LIST =
             "com.afwsamples.testdpc.policy.locktask.LOCKED_APP_PACKAGE_LIST";
 
-    public static final String[] DEF_LOCK_TASK = {"com.android.permissioncontroller"};
+//    public static final String[] DEF_LOCK_TASK = {"com.android.permissioncontroller"};
+    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
     private static final String[] KIOSK_USER_RESTRICTIONS = {
             DISALLOW_SAFE_BOOT,
             DISALLOW_FACTORY_RESET,
@@ -98,13 +117,75 @@ public class KioskModeActivity extends Activity {
     private DevicePolicyManager mDevicePolicyManager;
     private PackageManager mPackageManager;
 
+    private void showFloat(){
+        FxAppHelper helper = FxAppHelper.builder()
+                .setLayout(R.layout.item_floating)
+                .setScopeType(FxScopeType.SYSTEM)
+                .setContext(this)
+                // 设置启用日志,tag可以自定义，最终显示为FloatingX-xxx
+                .setEnableLog(true, "自定义的tag")
+
+                //1. 是否允许全局显示悬浮窗,默认true
+                .setEnableAllInstall(true)
+                //2. 禁止插入Activity的页面, setEnableAllBlackClass(true)时,此方法生效
+//                .addInstallBlackClass(BlackActivity.class)
+                //3. 允许插入Activity的页面, setEnableAllBlackClass(false)时,此方法生效
+//                .addInstallWhiteClass(MainActivity.class, ScopeActivity.class)
+
+                // 设置启用边缘吸附
+                .setEnableEdgeAdsorption(true)
+                // 设置边缘偏移量
+                .setEdgeOffset(10f)
+                // 设置启用悬浮窗可屏幕外回弹
+                .setEnableScrollOutsideScreen(true)
+                .setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent();
+                        intent.setClass(KioskModeActivity.this, PolicyManagementActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                    }
+                })
+                // 设置辅助方向辅助
+                // 设置点击事件
+//                .setOnClickListener()
+                // 设置view-lifecycle监听
+//            setViewLifecycle()
+                // 设置启用动画
+//                .setEnableAnimation(true)
+                // 设置启用动画实现
+//                .setAnimationImpl(new FxAnimationImpl())
+                // 设置方向保存impl
+//                .setSaveDirectionImpl(new FxConfigStorageToSpImpl(this))
+
+                // 设置底部偏移量
+                .setBottomBorderMargin(100f)
+                // 设置顶部偏移量
+//            setTopBorderMargin(100f)
+                // 设置左侧偏移量
+                .setLeftBorderMargin(100f)
+                // 设置右侧偏移量
+                .setRightBorderMargin(100f)
+                // 设置浮窗展示类型，默认可移动可点击，无需配置
+                .setDisplayMode(FxDisplayMode.Normal)
+                //启用悬浮窗,即默认会插入到允许的activity中
+                // 启用悬浮窗,相当于一个标记,会自动插入允许的activity中
+                .build();
+        FloatingX.install(helper).show();
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Log.e(TAG, "onCreate");
         mAdminComponentName = DeviceAdminReceiver.getComponentName(this);
         mDevicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         mPackageManager = getPackageManager();
+
+        //checkVersion();
+
+        //showFloat();
 
         // check if a new list of apps was sent, otherwise fall back to saved list
         String[] packageArray = getIntent().getStringArrayExtra(LOCKED_APP_PACKAGE_LIST);
@@ -147,9 +228,18 @@ public class KioskModeActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        Log.e(TAG, "onResume");
+
+        startApp(TutuUtil.TUTU_PKG);
+        finish();
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
-
+        Log.e(TAG, "onStart");
         // start lock task mode if it's not already active
         ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         // ActivityManager.getLockTaskModeState api is not available in pre-M.
@@ -162,6 +252,8 @@ public class KioskModeActivity extends Activity {
                 startLockTask();
             }
         }
+
+
     }
 
     public void onBackdoorClicked() {
@@ -295,5 +387,43 @@ public class KioskModeActivity extends Activity {
             }
             startActivity(launchAppIntent);
         }
+    }
+
+    private void startApp(String pkg){
+        AppUtils.launchApp(pkg);
+    }
+
+    private void checkVersion(){
+        ApiService apiService = RetrofitClient.INSTANCE.getApiService();
+
+        VersionCheckRequest request = new VersionCheckRequest(DeviceUtil.getDeviceImei(KioskModeActivity.this), AppUtils.getAppVersionCode());
+        Call<Resp.Common<VersionCheckResponse>> call = apiService.versionCheck(request);
+        NetworkManager.INSTANCE.makeRequest(call, new NetCallback<VersionCheckResponse>() {
+            @Override
+            public void onSuccess(@NonNull Resp.Common<VersionCheckResponse> resp, @NonNull byte[] data) {
+                if (Resp.SUCCESS.equals(resp.getCode())){
+                    VersionCheckResponse d = resp.getData();
+                    DownloadManager manager = new DownloadManager.Builder(KioskModeActivity.this)
+                            .apkUrl(d.getApkUrl())
+                            .apkName("appupdate.apk")
+                            .smallIcon(R.drawable.ic_launcher)
+                            .forcedUpgrade(true)
+                            //设置了此参数，那么内部会自动判断是否需要显示更新对话框，否则需要自己判断是否需要更新
+                            .apkVersionCode(d.getVersionCode())
+                            //同时下面三个参数也必须要设置
+                            .apkVersionName(d.getVersionName())
+                            .apkSize(d.getSize())
+                            .apkDescription(d.getUpgradeMsg())
+                            //省略一些非必须参数...
+                            .build();
+                    manager.download();
+                }
+            }
+
+            @Override
+            public void onNetError(int statusCode, @NonNull String msg) {
+
+            }
+        });
     }
 }
