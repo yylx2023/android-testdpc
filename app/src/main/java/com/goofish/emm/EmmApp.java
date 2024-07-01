@@ -2,11 +2,14 @@ package com.goofish.emm;
 
 import android.app.Application;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.view.View;
 
 import com.afwsamples.testdpc.PolicyManagementActivity;
 import com.afwsamples.testdpc.R;
 import com.goofish.emm.locktask.KioskModeActivity;
+import com.goofish.emm.util.ClickUtils;
 import com.petterp.floatingx.FloatingX;
 import com.petterp.floatingx.assist.FxDisplayMode;
 import com.petterp.floatingx.assist.FxScopeType;
@@ -14,6 +17,11 @@ import com.petterp.floatingx.assist.helper.FxAppHelper;
 import com.tencent.mmkv.MMKV;
 
 public class EmmApp extends Application {
+
+
+    private int COUNT = 10;
+    private long[] mHits = new long[COUNT];
+    private int DURATION = 5000;
 
     @Override
     public void onCreate() {
@@ -24,7 +32,19 @@ public class EmmApp extends Application {
         showFloat();
     }
 
-    private void showFloat(){
+    boolean shouldForward() {
+        //每次点击时，数组向前移动一位
+        System.arraycopy(mHits, 1, mHits, 0, mHits.length - 1);
+        //为数组最后一位赋值
+        mHits[mHits.length - 1] = SystemClock.uptimeMillis();
+        if (mHits[0] >= (SystemClock.uptimeMillis() - DURATION)) {
+            mHits = new long[COUNT]; //重新初始化数组
+            return true;
+        }
+        return false;
+    }
+
+    private void showFloat() {
         FxAppHelper helper = FxAppHelper.builder()
                 .setLayout(R.layout.item_floating)
                 .setScopeType(FxScopeType.SYSTEM)
@@ -48,10 +68,20 @@ public class EmmApp extends Application {
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Intent intent = new Intent();
-                        intent.setClass(EmmApp.this, PolicyManagementActivity.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(intent);
+                        if (shouldForward()) {
+                            Intent intent = new Intent();
+                            intent.setClass(EmmApp.this, PolicyManagementActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        } else {
+                            new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mHits = new long[COUNT];
+                                }
+                            }, 5000);
+                        }
+
                     }
                 })
                 // 设置辅助方向辅助
