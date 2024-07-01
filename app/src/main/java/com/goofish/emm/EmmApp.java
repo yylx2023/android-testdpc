@@ -10,6 +10,7 @@ import com.afwsamples.testdpc.PolicyManagementActivity;
 import com.afwsamples.testdpc.R;
 import com.goofish.emm.locktask.KioskModeActivity;
 import com.goofish.emm.util.ClickUtils;
+import com.kongzue.dialogx.DialogX;
 import com.petterp.floatingx.FloatingX;
 import com.petterp.floatingx.assist.FxDisplayMode;
 import com.petterp.floatingx.assist.FxScopeType;
@@ -29,7 +30,16 @@ public class EmmApp extends Application {
 
         MMKV.initialize(this);
 
-        showFloat();
+        DialogX.init(this);
+        DialogX.globalHoverWindow = true;
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                //showFloat();
+            }
+        }, 60 * 1000);
+
     }
 
     boolean shouldForward() {
@@ -88,7 +98,7 @@ public class EmmApp extends Application {
                 // 设置点击事件
 //                .setOnClickListener()
                 // 设置view-lifecycle监听
-//            setViewLifecycle()
+              //  .setViewLifecycle()
                 // 设置启用动画
 //                .setEnableAnimation(true)
                 // 设置启用动画实现

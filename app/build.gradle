@@ -86,4 +86,7 @@ dependencies {
 
     implementation 'io.github.petterpx:floatingx:2.1.1'
 
+    implementation 'com.github.princekin-f:EasyFloat:2.0.4'
+
+    implementation 'com.kongzue.dialogx:DialogX:0.0.49'
 }

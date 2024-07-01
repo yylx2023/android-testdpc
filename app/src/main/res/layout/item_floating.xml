@@ -5,7 +5,7 @@
     android:id="@+id/cardItemFx"
     android:layout_width="50dp"
     android:layout_height="50dp"
-    app:cardBackgroundColor="#E6D3D3D3"
+    app:cardBackgroundColor="#80D3D3D3"
     app:cardCornerRadius="50dp"
     app:cardElevation="0dp">
 
