@@ -28,18 +28,15 @@ import androidx.annotation.RequiresApi;
 import com.afwsamples.testdpc.DeviceAdminReceiver;
 import com.afwsamples.testdpc.R;
 import com.afwsamples.testdpc.common.Util;
-import com.azhon.appupdate.manager.DownloadManager;
 import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.ToastUtils;
-import com.goofish.emm.http.AccivationResponse;
+import com.goofish.emm.http.ActivationResponse;
 import com.goofish.emm.http.ActivationRequest;
 import com.goofish.emm.http.ApiService;
 import com.goofish.emm.http.NetCallback;
 import com.goofish.emm.http.NetworkManager;
 import com.goofish.emm.http.Resp;
 import com.goofish.emm.http.RetrofitClient;
-import com.goofish.emm.http.VersionCheckRequest;
-import com.goofish.emm.http.VersionCheckResponse;
 import com.goofish.emm.locktask.KioskModeActivity;
 import com.goofish.emm.locktask.LockTaskAppInfoArrayAdapter;
 import com.goofish.emm.tutu.TutuUtil;
@@ -151,10 +148,10 @@ public class EmmMainActivity extends Activity {
                 ApiService apiService = RetrofitClient.INSTANCE.getApiService();
 
                 ActivationRequest request = new ActivationRequest(DeviceUtil.getDeviceImei(EmmMainActivity.this));
-                Call<Resp.Common<AccivationResponse>> call = apiService.activate(request);
-                NetworkManager.INSTANCE.makeRequest(call, new NetCallback<AccivationResponse>() {
+                Call<Resp.Common<ActivationResponse>> call = apiService.activate(request);
+                NetworkManager.INSTANCE.makeRequest(call, new NetCallback<ActivationResponse>() {
                     @Override
-                    public void onSuccess(@NonNull Resp.Common<AccivationResponse> resp, @NonNull byte[] data) {
+                    public void onSuccess(@NonNull Resp.Common<ActivationResponse> resp, @NonNull byte[] data) {
                         Log.e("ggg", "ggg" + resp.getCode());
                         relativeLayout.setVisibility(View.GONE); // 显示 ProgressBar
                         //成功
@@ -170,6 +167,8 @@ public class EmmMainActivity extends Activity {
                     @Override
                     public void onNetError(int statusCode, @NonNull String msg) {
                         relativeLayout.setVisibility(View.GONE); // 显示 ProgressBar
+
+                        ToastUtils.showShort("网络异常: " + statusCode);
                     }
                 });
 

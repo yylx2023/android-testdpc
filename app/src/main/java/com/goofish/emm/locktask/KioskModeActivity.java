@@ -244,7 +244,7 @@ public class KioskModeActivity extends Activity {
         mDevicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         mPackageManager = getPackageManager();
 
-        //checkVersion();
+        checkVersion();
 
         //showFloat();
 

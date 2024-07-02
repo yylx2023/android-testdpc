@@ -3,9 +3,48 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+apply plugin: 'stringfog'
+
+// 导入RandomKeyGenerator类，如果使用HardCodeKeyGenerator，更换下类名
+import com.github.megatronking.stringfog.plugin.kg.RandomKeyGenerator
+import com.github.megatronking.stringfog.plugin.StringFogMode
+
+stringfog {
+    // 必要：加解密库的实现类路径，需和上面配置的加解密算法库一致。
+    implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
+    // 可选：StringFog会自动尝试获取packageName，如果遇到获取失败的情况，可以显式地指定。
+    packageName 'com.github.megatronking.stringfog.app'
+    // 可选：加密开关，默认开启。
+    enable true
+    // 可选：指定需加密的代码包路径，可配置多个，未指定将默认全部加密。
+    fogPackages = ['com.goofish.emm']
+    // 可选（3.0版本新增）：指定密钥生成器，默认使用长度8的随机密钥（每个字符串均有不同随机密钥）,
+    // 也可以指定一个固定的密钥：HardCodeKeyGenerator("This is a key")
+    kg new RandomKeyGenerator()
+    // 可选（4.0版本新增）：用于控制字符串加密后在字节码中的存在形式, 默认为base64，
+    // 也可以使用text或者bytes
+    mode StringFogMode.bytes
+}
+
 android {
     namespace 'com.afwsamples.testdpc'
     compileSdk 34
+
+    signingConfigs {
+//        debug {
+//            storeFile file('../testkey.jks')
+//            storePassword 'android'
+//            keyAlias 'android'
+//            keyPassword 'android'
+//        }
+
+        goofish {
+            storeFile file('../goofish.jks')
+            storePassword 'goofish.sec'
+            keyAlias 'goofish'
+            keyPassword 'goofish.sec'
+        }
+    }
 
     defaultConfig {
 //        applicationId "com.afwsamples.testdpc"
@@ -20,10 +59,16 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            signingConfig signingConfigs.goofish
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+
+        debug {
+            signingConfig signingConfigs.goofish
+        }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -73,12 +118,14 @@ dependencies {
 
     implementation 'com.blankj:utilcodex:1.31.1'
 
+    implementation 'com.github.megatronking.stringfog:xor:5.0.0'
+
     // Retrofit and Gson
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
 
     // Optional: Logging Interceptor for Retrofit
-    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.1'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
 
     implementation 'io.github.azhon:appupdate:4.3.2'
 
