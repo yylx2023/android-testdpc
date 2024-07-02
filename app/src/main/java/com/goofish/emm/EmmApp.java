@@ -24,6 +24,8 @@ public class EmmApp extends Application {
     private long[] mHits = new long[COUNT];
     private int DURATION = 5000;
 
+    public static EmmApp app;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -40,6 +42,7 @@ public class EmmApp extends Application {
             }
         }, 60 * 1000);
 
+        app = this;
     }
 
     boolean shouldForward() {
@@ -98,7 +101,7 @@ public class EmmApp extends Application {
                 // 设置点击事件
 //                .setOnClickListener()
                 // 设置view-lifecycle监听
-              //  .setViewLifecycle()
+                //  .setViewLifecycle()
                 // 设置启用动画
 //                .setEnableAnimation(true)
                 // 设置启用动画实现

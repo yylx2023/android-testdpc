@@ -23,6 +23,7 @@ import com.afwsamples.testdpc.common.Util;
 import com.azhon.appupdate.manager.DownloadManager;
 import com.blankj.utilcode.util.AppUtils;
 import com.goofish.emm.EmmApp;
+import com.goofish.emm.EmmDebugActivity;
 import com.goofish.emm.http.ApiService;
 import com.goofish.emm.http.NetCallback;
 import com.goofish.emm.http.NetworkManager;
@@ -47,9 +48,11 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -81,6 +84,7 @@ import static android.os.UserManager.DISALLOW_UNINSTALL_APPS;
 
 import androidx.annotation.NonNull;
 
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import retrofit2.Call;
 
 /**
@@ -109,8 +113,8 @@ public class KioskModeActivity extends Activity {
             "com.afwsamples.testdpc.policy.locktask.LOCKED_APP_PACKAGE_LIST";
 
     //    public static final String[] DEF_LOCK_TASK = {"com.android.permissioncontroller"};
-    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
-    //    public static final String[] DEF_LOCK_TASK = {};
+//    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
+    public static final String[] DEF_LOCK_TASK = {TutuUtil.TUTU_PKG, "com.android.packageinstaller"};
     private static final String[] KIOSK_USER_RESTRICTIONS = {
             DISALLOW_SAFE_BOOT,
             DISALLOW_FACTORY_RESET,
@@ -130,6 +134,26 @@ public class KioskModeActivity extends Activity {
     private int COUNT = 10;
     private long[] mHits = new long[COUNT];
     private int DURATION = 5000;
+
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (TutuUtil.ACTION_EXIT_LOCKTASK.equals(intent.getAction())) {
+                onBackdoorClicked();
+            }
+        }
+
+
+    };
+
+    private void register() {
+        IntentFilter filter = new IntentFilter(TutuUtil.ACTION_EXIT_LOCKTASK);
+        LocalBroadcastManager.getInstance(EmmApp.app).registerReceiver(receiver, filter);
+    }
+
+    private void unregister() {
+        LocalBroadcastManager.getInstance(EmmApp.app).unregisterReceiver(receiver);
+    }
 
     boolean shouldForward() {
         //每次点击时，数组向前移动一位
@@ -232,7 +256,7 @@ public class KioskModeActivity extends Activity {
                             @Override
                             public void onClick(View v) {
 
-                                new InputDialog("请输入密码", "请输入密码", "确定", "取消", "password")
+                               /* new InputDialog("请输入密码", "请输入密码", "确定", "取消", "password")
                                         .setCancelable(false)
                                         .setOkButton(new OnInputDialogButtonClickListener<InputDialog>() {
                                             @Override
@@ -241,12 +265,12 @@ public class KioskModeActivity extends Activity {
                                                 return false;
                                             }
                                         })
-                                        .show();
+                                        .show();*/
 
                                 if (shouldForward()) {
 
                                     Intent intent = new Intent();
-                                    intent.setClass(KioskModeActivity.this, PolicyManagementActivity.class);
+                                    intent.setClass(KioskModeActivity.this, EmmDebugActivity.class);
                                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                                     startActivity(intent);
                                 } else {
@@ -304,6 +328,14 @@ public class KioskModeActivity extends Activity {
 //        setContentView(listView);
         setContentView(R.layout.activity_empty);
 
+        register();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        unregister();
     }
 
     @Override
@@ -311,7 +343,7 @@ public class KioskModeActivity extends Activity {
         super.onResume();
         Log.e(TAG, "onResume");
 
-        //startApp(TutuUtil.TUTU_PKG);
+        startApp(TutuUtil.TUTU_PKG);
 //        finish();
     }
 
@@ -331,8 +363,6 @@ public class KioskModeActivity extends Activity {
                 startLockTask();
             }
         }
-
-        startApp(TutuUtil.TUTU_PKG);
 
     }
 

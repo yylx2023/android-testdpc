@@ -10,6 +10,8 @@ import java.security.Permission;
 public class TutuUtil {
     public static final String TUTU_PKG = "com.doutu.tutupad";
 
+    public static final String ACTION_EXIT_LOCKTASK = "action_exit_locktask";
+
     public static void grantPermission(DevicePolicyManager devicePolicyManager, ComponentName cn) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return;

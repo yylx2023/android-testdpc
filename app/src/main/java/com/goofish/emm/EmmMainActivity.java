@@ -30,6 +30,7 @@ import com.afwsamples.testdpc.R;
 import com.afwsamples.testdpc.common.Util;
 import com.azhon.appupdate.manager.DownloadManager;
 import com.blankj.utilcode.util.AppUtils;
+import com.blankj.utilcode.util.ToastUtils;
 import com.goofish.emm.http.AccivationResponse;
 import com.goofish.emm.http.ActivationRequest;
 import com.goofish.emm.http.ApiService;
@@ -132,7 +133,7 @@ public class EmmMainActivity extends Activity {
         }
 
         //设备已经激活
-        if (!TextUtils.isEmpty(AppPref.getInstance().getMMKV().decodeString("token"))){
+        if (!TextUtils.isEmpty(AppPref.getInstance().getMMKV().decodeString("token"))) {
             startKioskMode(new String[]{TutuUtil.TUTU_PKG});
             return;
         }
@@ -161,7 +162,7 @@ public class EmmMainActivity extends Activity {
                             AppPref.getInstance().getMMKV().encode("token", resp.getData().getToken());
                             startKioskMode(new String[]{TutuUtil.TUTU_PKG});
                         } else {
-
+                            ToastUtils.showShort(resp.getMsg());
                         }
 
                     }

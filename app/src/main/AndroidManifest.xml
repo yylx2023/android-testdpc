@@ -25,7 +25,7 @@
             android:minSdkVersion="21"
             android:targetSdkVersion="34" />
 
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -82,7 +82,7 @@
             android:required="false" />
 
     <application
-        android:name="com.goofish.emm.EmmApp"
+            android:name="com.goofish.emm.EmmApp"
             android:allowBackup="true"
             android:banner="@drawable/ic_launcher"
             android:icon="@drawable/ic_launcher"
@@ -105,6 +105,9 @@
             <!--            </intent-filter>-->
         </activity>
 
+        <activity
+                android:name="com.goofish.emm.EmmDebugActivity"
+                android:exported="false" />
 
         <activity
                 android:name="com.goofish.emm.EmmMainActivity"
@@ -284,12 +287,12 @@
         </receiver>
 
         <service
-            android:name=".policy.resetpassword.ResetPasswordService"
-            android:directBootAware="true"
-            android:enabled="@bool/is_o_or_later"
-            android:exported="false"
-            android:foregroundServiceType="systemExempted"
-            tools:ignore="ForegroundServicePermission,UnusedAttribute" />
+                android:name=".policy.resetpassword.ResetPasswordService"
+                android:directBootAware="true"
+                android:enabled="@bool/is_o_or_later"
+                android:exported="false"
+                android:foregroundServiceType="systemExempted"
+                tools:ignore="ForegroundServicePermission,UnusedAttribute" />
 
         <provider
                 android:name="androidx.startup.InitializationProvider"
