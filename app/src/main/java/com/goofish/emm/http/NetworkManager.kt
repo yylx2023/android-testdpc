@@ -13,7 +13,7 @@ object NetworkManager {
             override fun onResponse(call: Call<Resp.Common<T>>, response: Response<Resp.Common<T>>) {
                 if (response.isSuccessful) {
                     val body = response.body()
-                    if (body != null && body.code == Resp.SUCCESS) {
+                    if (body != null) {
                         callback.onSuccess(body, ByteArray(0))  // Remove raw body reading
                     } else {
                         callback.onNetError(response.code(), body?.msg ?: "Unknown error")
