@@ -24,18 +24,16 @@ import com.azhon.appupdate.manager.DownloadManager;
 import com.blankj.utilcode.util.AppUtils;
 import com.goofish.emm.EmmApp;
 import com.goofish.emm.EmmDebugActivity;
+import com.goofish.emm.appstore.AppstoreActivity;
 import com.goofish.emm.http.ApiService;
 import com.goofish.emm.http.NetCallback;
 import com.goofish.emm.http.NetworkManager;
 import com.goofish.emm.http.Resp;
 import com.goofish.emm.http.RetrofitClient;
-import com.goofish.emm.http.VersionCheckRequest;
+import com.goofish.emm.http.CommonRequest;
 import com.goofish.emm.http.VersionCheckResponse;
 import com.goofish.emm.tutu.TutuUtil;
 import com.goofish.emm.util.DeviceUtil;
-import com.kongzue.dialogx.DialogX;
-import com.kongzue.dialogx.dialogs.InputDialog;
-import com.kongzue.dialogx.interfaces.OnInputDialogButtonClickListener;
 import com.lzf.easyfloat.EasyFloat;
 import com.lzf.easyfloat.enums.ShowPattern;
 import com.lzf.easyfloat.interfaces.OnInvokeView;
@@ -67,7 +65,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -109,17 +106,12 @@ public class KioskModeActivity extends Activity {
     private static final String KIOSK_PREFERENCE_FILE = "kiosk_preference_file";
     private static final String KIOSK_APPS_KEY = "kiosk_apps";
 
-    public static final String LOCKED_APP_PACKAGE_LIST =
-            "com.afwsamples.testdpc.policy.locktask.LOCKED_APP_PACKAGE_LIST";
+    public static final String LOCKED_APP_PACKAGE_LIST = "com.afwsamples.testdpc.policy.locktask.LOCKED_APP_PACKAGE_LIST";
 
     //    public static final String[] DEF_LOCK_TASK = {"com.android.permissioncontroller"};
 //    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
     public static final String[] DEF_LOCK_TASK = {TutuUtil.TUTU_PKG, "com.android.packageinstaller"};
-    private static final String[] KIOSK_USER_RESTRICTIONS = {
-            DISALLOW_SAFE_BOOT,
-            DISALLOW_FACTORY_RESET,
-            DISALLOW_ADD_USER,
-            DISALLOW_MOUNT_PHYSICAL_MEDIA,
+    private static final String[] KIOSK_USER_RESTRICTIONS = {DISALLOW_SAFE_BOOT, DISALLOW_FACTORY_RESET, DISALLOW_ADD_USER, DISALLOW_MOUNT_PHYSICAL_MEDIA,
 //            DISALLOW_ADJUST_VOLUME,
             DISALLOW_UNINSTALL_APPS,
 //            DISALLOW_DEBUGGING_FEATURES
@@ -168,10 +160,7 @@ public class KioskModeActivity extends Activity {
     }
 
     private void showFloat() {
-        FxAppHelper helper = FxAppHelper.builder()
-                .setLayout(R.layout.item_floating)
-                .setScopeType(FxScopeType.SYSTEM)
-                .setContext(this)
+        FxAppHelper helper = FxAppHelper.builder().setLayout(R.layout.item_floating).setScopeType(FxScopeType.SYSTEM).setContext(this)
                 // 设置启用日志,tag可以自定义，最终显示为FloatingX-xxx
                 .setEnableLog(true, "自定义的tag")
 
@@ -187,8 +176,7 @@ public class KioskModeActivity extends Activity {
                 // 设置边缘偏移量
                 .setEdgeOffset(10f)
                 // 设置启用悬浮窗可屏幕外回弹
-                .setEnableScrollOutsideScreen(true)
-                .setOnClickListener(new View.OnClickListener() {
+                .setEnableScrollOutsideScreen(true).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         if (shouldForward()) {
@@ -248,13 +236,12 @@ public class KioskModeActivity extends Activity {
 
         //showFloat();
 
-        EasyFloat.with(this)
-                .setLayout(R.layout.item_floating, new OnInvokeView() {
+        EasyFloat.with(this).setLayout(R.layout.item_floating, new OnInvokeView() {
+            @Override
+            public void invoke(View view) {
+                view.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void invoke(View view) {
-                        view.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
+                    public void onClick(View v) {
 
                                /* new InputDialog("请输入密码", "请输入密码", "确定", "取消", "password")
                                         .setCancelable(false)
@@ -267,26 +254,35 @@ public class KioskModeActivity extends Activity {
                                         })
                                         .show();*/
 
-                                if (shouldForward()) {
+                        if (shouldForward()) {
 
-                                    Intent intent = new Intent();
-                                    intent.setClass(KioskModeActivity.this, EmmDebugActivity.class);
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                    startActivity(intent);
-                                } else {
-                                    new Handler().postDelayed(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            mHits = new long[COUNT];
-                                        }
-                                    }, 5000);
+                            Intent intent = new Intent();
+                            intent.setClass(KioskModeActivity.this, EmmDebugActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        } else {
+                            new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mHits = new long[COUNT];
                                 }
-                            }
-                        });
+                            }, 5000);
+                        }
                     }
-                })
-                .setShowPattern(ShowPattern.ALL_TIME)
-                .show();
+                });
+
+                view.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        Intent intent = new Intent();
+                        intent.setClass(KioskModeActivity.this, AppstoreActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        return true;
+                    }
+                });
+            }
+        }).setShowPattern(ShowPattern.ALL_TIME).show();
         // check if a new list of apps was sent, otherwise fall back to saved list
         String[] packageArray = getIntent().getStringArrayExtra(LOCKED_APP_PACKAGE_LIST);
         if (packageArray != null) {
@@ -302,10 +298,8 @@ public class KioskModeActivity extends Activity {
             setDefaultKioskPolicies(true);
         } else {
             // after a reboot there is no need to set the policies again
-            SharedPreferences sharedPreferences =
-                    getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
-            mKioskPackages =
-                    new ArrayList<>(sharedPreferences.getStringSet(KIOSK_APPS_KEY, new HashSet<String>()));
+            SharedPreferences sharedPreferences = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
+            mKioskPackages = new ArrayList<>(sharedPreferences.getStringSet(KIOSK_APPS_KEY, new HashSet<String>()));
             setDefaultKioskPolicies(true);
         }
 
@@ -369,12 +363,8 @@ public class KioskModeActivity extends Activity {
     public void onBackdoorClicked() {
         stopLockTask();
         setDefaultKioskPolicies(false);
-        mDevicePolicyManager.clearPackagePersistentPreferredActivities(
-                mAdminComponentName, getPackageName());
-        mPackageManager.setComponentEnabledSetting(
-                new ComponentName(getPackageName(), getClass().getName()),
-                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
-                PackageManager.DONT_KILL_APP);
+        mDevicePolicyManager.clearPackagePersistentPreferredActivities(mAdminComponentName, getPackageName());
+        mPackageManager.setComponentEnabledSetting(new ComponentName(getPackageName(), getClass().getName()), PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
         finish();
         startActivity(new Intent(this, PolicyManagementActivity.class));
     }
@@ -404,8 +394,7 @@ public class KioskModeActivity extends Activity {
         }
 
         // set lock task packages
-        mDevicePolicyManager.setLockTaskPackages(
-                mAdminComponentName, active ? mKioskPackages.toArray(new String[]{}) : new String[]{});
+        mDevicePolicyManager.setLockTaskPackages(mAdminComponentName, active ? mKioskPackages.toArray(new String[]{}) : new String[]{});
         SharedPreferences sharedPreferences = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         if (active) {
@@ -420,8 +409,7 @@ public class KioskModeActivity extends Activity {
     private void saveCurrentConfiguration() {
         if (Util.SDK_INT >= VERSION_CODES.N) {
             Bundle settingsBundle = mDevicePolicyManager.getUserRestrictions(mAdminComponentName);
-            SharedPreferences.Editor editor =
-                    getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE).edit();
+            SharedPreferences.Editor editor = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE).edit();
 
             for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
                 boolean currentSettingValue = settingsBundle.getBoolean(userRestriction);
@@ -433,8 +421,7 @@ public class KioskModeActivity extends Activity {
 
     private void restorePreviousConfiguration() {
         if (Util.SDK_INT >= VERSION_CODES.N) {
-            SharedPreferences sharedPreferences =
-                    getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
+            SharedPreferences sharedPreferences = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
 
             for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
                 boolean prevSettingValue = sharedPreferences.getBoolean(userRestriction, false);
@@ -443,8 +430,7 @@ public class KioskModeActivity extends Activity {
         }
     }
 
-    private class KioskAppsArrayAdapter extends ArrayAdapter<String>
-            implements AdapterView.OnItemClickListener {
+    private class KioskAppsArrayAdapter extends ArrayAdapter<String> implements AdapterView.OnItemClickListener {
 
         public KioskAppsArrayAdapter(Context context, int resource, List<String> objects) {
             super(context, resource, objects);
@@ -461,8 +447,7 @@ public class KioskModeActivity extends Activity {
             }
 
             if (convertView == null) {
-                convertView =
-                        LayoutInflater.from(getContext()).inflate(R.layout.kiosk_mode_item, parent, false);
+                convertView = LayoutInflater.from(getContext()).inflate(R.layout.kiosk_mode_item, parent, false);
             }
             ImageView iconImageView = (ImageView) convertView.findViewById(R.id.pkg_icon);
             iconImageView.setImageDrawable(applicationInfo.loadIcon(mPackageManager));
@@ -506,24 +491,18 @@ public class KioskModeActivity extends Activity {
     private void checkVersion() {
         ApiService apiService = RetrofitClient.INSTANCE.getApiService();
 
-        VersionCheckRequest request = new VersionCheckRequest(DeviceUtil.getDeviceImei(KioskModeActivity.this), AppUtils.getAppVersionCode());
+        CommonRequest request = new CommonRequest(DeviceUtil.getDeviceImei(KioskModeActivity.this), AppUtils.getAppVersionCode());
         Call<Resp.Common<VersionCheckResponse>> call = apiService.versionCheck(request);
         NetworkManager.INSTANCE.makeRequest(call, new NetCallback<VersionCheckResponse>() {
             @Override
             public void onSuccess(@NonNull Resp.Common<VersionCheckResponse> resp, @NonNull byte[] data) {
                 if (Resp.SUCCESS.equals(resp.getCode())) {
                     VersionCheckResponse d = resp.getData();
-                    DownloadManager manager = new DownloadManager.Builder(KioskModeActivity.this)
-                            .apkUrl(d.getApkUrl())
-                            .apkName("appupdate.apk")
-                            .smallIcon(R.drawable.ic_launcher)
-                            .forcedUpgrade(true)
+                    DownloadManager manager = new DownloadManager.Builder(KioskModeActivity.this).apkUrl(d.getApkUrl()).apkName("appupdate.apk").smallIcon(R.drawable.ic_launcher).forcedUpgrade(true)
                             //设置了此参数，那么内部会自动判断是否需要显示更新对话框，否则需要自己判断是否需要更新
                             .apkVersionCode(d.getVersionCode())
                             //同时下面三个参数也必须要设置
-                            .apkVersionName(d.getVersionName())
-                            .apkSize(d.getSize())
-                            .apkDescription(d.getUpgradeMsg())
+                            .apkVersionName(d.getVersionName()).apkSize(d.getSize()).apkDescription(d.getUpgradeMsg())
                             //省略一些非必须参数...
                             .build();
                     manager.download();

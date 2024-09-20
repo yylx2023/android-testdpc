@@ -2,6 +2,7 @@
 package com.goofish.emm.http
 
 import androidx.annotation.Keep
+import com.goofish.emm.appstore.App
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -11,7 +12,10 @@ interface ApiService {
     fun activate(@Body request: ActivationRequest): Call<Resp.Common<ActivationResponse>>
 
     @POST("/v1/versionCheck")
-    fun versionCheck(@Body request: VersionCheckRequest): Call<Resp.Common<VersionCheckResponse>>
+    fun versionCheck(@Body request: CommonRequest): Call<Resp.Common<VersionCheckResponse>>
+
+    @POST("/v1/appList")
+    fun appList(@Body request: CommonRequest): Call<Resp.Common<AppListResponse>>
 }
 
 @Keep
@@ -21,7 +25,7 @@ data class ActivationRequest(val sn: String)
 data class ActivationResponse(val token: String)
 
 @Keep
-data class VersionCheckRequest(
+data class CommonRequest(
     val sn: String,
     val versionCode: Int
 )
@@ -34,4 +38,10 @@ data class VersionCheckResponse(
     val versionName: String,
     val versionCode: Int,
     val size: String
+)
+
+
+@Keep
+data class AppListResponse(
+    val apps: MutableList<App>
 )

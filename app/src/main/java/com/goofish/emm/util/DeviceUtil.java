@@ -14,15 +14,20 @@ import androidx.annotation.RequiresApi;
 public class DeviceUtil {
     @SuppressLint("NewApi")
     public static String getDeviceImei(Context context) {
-        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-        String imei = "";
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            imei = telephonyManager.getImei();
+        try {
+            TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            String imei = "";
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                imei = telephonyManager.getImei();
+            }
+            if (!TextUtils.isEmpty(imei)) {
+                return imei;
+            }
+            return Build.getSerial();
+        } catch (Exception e) {
+            return "xxxxxyyyyy";
         }
-        if (!TextUtils.isEmpty(imei)) {
-            return imei;
-        }
-        return Build.getSerial();
+
     }
 
     public static String generateCode(String sn) {
