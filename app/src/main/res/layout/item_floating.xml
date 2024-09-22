@@ -1,32 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp"
-        android:gravity="center">
-
-    <ImageView
-            android:id="@+id/app_icon"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:scaleType="fitCenter" />
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardItemFx"
+    android:layout_width="50dp"
+    android:layout_height="50dp"
+    app:cardBackgroundColor="#80D3D3D3"
+    app:cardCornerRadius="50dp"
+    app:cardElevation="0dp">
 
     <TextView
-            android:id="@+id/app_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="12sp"
-            android:maxLines="2"
-            android:ellipsize="end" />
-
-    <ProgressBar
-            android:id="@+id/download_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:visibility="gone" />
-
-</LinearLayout>
+        android:id="@+id/tvItemFx"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="7dp"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textSize="14sp" />
+</androidx.cardview.widget.CardView>

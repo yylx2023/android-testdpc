@@ -12,6 +12,7 @@ import com.bumptech.glide.Glide
 import com.goofish.emm.appstore.App
 import com.goofish.emm.download.DownloadCallback
 import com.goofish.emm.download.DownloadManager
+import com.goofish.emm.util.Dpm
 import com.liulishuo.okdownload.DownloadTask
 import com.tonyodev.fetch2.Download
 import java.io.File
@@ -60,6 +61,8 @@ class AppGridAdapter(
     override fun getItemCount() = apps.size
 
     private fun launchApp(packageName: String, context: Context) {
+        Dpm.getInstance().addLockTask(packageName);
+
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
         if (launchIntent != null) {
             context.startActivity(launchIntent)

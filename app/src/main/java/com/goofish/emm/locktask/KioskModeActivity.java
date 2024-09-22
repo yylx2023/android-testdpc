@@ -59,7 +59,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -232,7 +234,13 @@ public class KioskModeActivity extends Activity {
         mDevicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         mPackageManager = getPackageManager();
 
-        checkVersion();
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                checkVersion();
+            }
+        }, 30 * 1000L);
+
 
         //showFloat();
 
@@ -278,11 +286,14 @@ public class KioskModeActivity extends Activity {
                         intent.setClass(KioskModeActivity.this, AppstoreActivity.class);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(intent);
-                        return true;
+                        return false;
                     }
                 });
             }
         }).setShowPattern(ShowPattern.ALL_TIME).show();
+
+
+
         // check if a new list of apps was sent, otherwise fall back to saved list
         String[] packageArray = getIntent().getStringArrayExtra(LOCKED_APP_PACKAGE_LIST);
         if (packageArray != null) {
