@@ -36,6 +36,7 @@ import com.goofish.emm.tutu.TutuUtil;
 import com.goofish.emm.util.DeviceUtil;
 import com.lzf.easyfloat.EasyFloat;
 import com.lzf.easyfloat.enums.ShowPattern;
+import com.lzf.easyfloat.interfaces.OnFloatCallbacks;
 import com.lzf.easyfloat.interfaces.OnInvokeView;
 import com.petterp.floatingx.FloatingX;
 import com.petterp.floatingx.assist.FxDisplayMode;
@@ -244,14 +245,14 @@ public class KioskModeActivity extends Activity {
 
         //showFloat();
 
-        EasyFloat.with(this).setLayout(R.layout.item_floating, new OnInvokeView() {
+        /*EasyFloat.with(this).setLayout(R.layout.item_floating, new OnInvokeView() {
             @Override
             public void invoke(View view) {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
 
-                               /* new InputDialog("请输入密码", "请输入密码", "确定", "取消", "password")
+                               *//* new InputDialog("请输入密码", "请输入密码", "确定", "取消", "password")
                                         .setCancelable(false)
                                         .setOkButton(new OnInputDialogButtonClickListener<InputDialog>() {
                                             @Override
@@ -260,7 +261,7 @@ public class KioskModeActivity extends Activity {
                                                 return false;
                                             }
                                         })
-                                        .show();*/
+                                        .show();*//*
 
                         if (shouldForward()) {
 
@@ -290,9 +291,165 @@ public class KioskModeActivity extends Activity {
                     }
                 });
             }
-        }).setShowPattern(ShowPattern.ALL_TIME).show();
+        }).setShowPattern(ShowPattern.ALL_TIME).show();*/
 
 
+
+        /*EasyFloat.with(this).setLayout(R.layout.item_floating, new OnInvokeView() {
+            @Override
+            public void invoke(View view) {
+                final GestureDetector gestureDetector = new GestureDetector(KioskModeActivity.this, new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onSingleTapConfirmed(MotionEvent e) {
+                        if (shouldForward()) {
+                            Intent intent = new Intent(KioskModeActivity.this, EmmDebugActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        } else {
+                            new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mHits = new long[COUNT];
+                                }
+                            }, 5000);
+                        }
+                        return true;
+                    }
+
+                    @Override
+                    public void onLongPress(MotionEvent e) {
+                        Intent intent = new Intent(KioskModeActivity.this, AppstoreActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                    }
+                });
+
+                view.setOnTouchListener(new View.OnTouchListener() {
+                    private float dX, dY;
+                    private boolean isDragging = false;
+                    private long pressStartTime;
+                    private static final long LONG_PRESS_THRESHOLD = 500; // 长按阈值，单位毫秒
+
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        if (gestureDetector.onTouchEvent(event)) {
+                            return true;
+                        }
+
+                        switch (event.getAction()) {
+                            case MotionEvent.ACTION_DOWN:
+                                dX = v.getX() - event.getRawX();
+                                dY = v.getY() - event.getRawY();
+                                pressStartTime = System.currentTimeMillis();
+                                isDragging = false;
+                                break;
+
+                            case MotionEvent.ACTION_MOVE:
+                                long pressDuration = System.currentTimeMillis() - pressStartTime;
+                                if (pressDuration < LONG_PRESS_THRESHOLD) {
+                                    isDragging = true;
+                                }
+                                if (isDragging) {
+                                    v.animate()
+                                            .x(event.getRawX() + dX)
+                                            .y(event.getRawY() + dY)
+                                            .setDuration(0)
+                                            .start();
+                                }
+                                break;
+
+                            case MotionEvent.ACTION_UP:
+                                if (!isDragging && System.currentTimeMillis() - pressStartTime < LONG_PRESS_THRESHOLD) {
+                                    v.performClick();
+                                }
+                                break;
+
+                            default:
+                                return false;
+                        }
+                        return true;
+                    }
+                });
+            }
+        }).setShowPattern(ShowPattern.ALL_TIME).show();*/
+
+        EasyFloat.with(this)
+                .setLayout(R.layout.item_floating)
+                .setShowPattern(ShowPattern.ALL_TIME)
+                .setDragEnable(true)
+                .setTag("myFloatView")
+                .registerCallbacks(new OnFloatCallbacks() {
+                    @Override
+                    public void show(@NonNull View view) {
+
+                    }
+
+                    @Override
+                    public void hide(@NonNull View view) {
+
+                    }
+
+                    private long touchStartTime;
+                    private float touchStartX, touchStartY;
+                    private boolean isDragging = false;
+                    private static final long LONG_PRESS_DURATION = 500; // milliseconds
+                    private static final float CLICK_THRESHOLD = 10; // pixels
+
+                    @Override
+                    public void createdResult(boolean isCreated, String msg, View view) {
+                        if (isCreated) {
+                            // 可以在这里进行一些初始化操作
+                        }
+                    }
+
+                    @Override
+                    public void touchEvent(View view, MotionEvent event) {
+                        switch (event.getAction()) {
+                            case MotionEvent.ACTION_DOWN:
+                                touchStartTime = System.currentTimeMillis();
+                                touchStartX = event.getRawX();
+                                touchStartY = event.getRawY();
+                                isDragging = false;
+                                view.postDelayed(longPressRunnable, LONG_PRESS_DURATION);
+                                break;
+                            case MotionEvent.ACTION_MOVE:
+                                float deltaX = Math.abs(event.getRawX() - touchStartX);
+                                float deltaY = Math.abs(event.getRawY() - touchStartY);
+                                if (deltaX > CLICK_THRESHOLD || deltaY > CLICK_THRESHOLD) {
+                                    isDragging = true;
+                                    view.removeCallbacks(longPressRunnable);
+                                }
+                                break;
+                            case MotionEvent.ACTION_UP:
+                                view.removeCallbacks(longPressRunnable);
+                                long pressDuration = System.currentTimeMillis() - touchStartTime;
+                                if (!isDragging && pressDuration < LONG_PRESS_DURATION) {
+                                    handleClick();
+                                }
+                                break;
+                        }
+                    }
+
+                    private Runnable longPressRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!isDragging) {
+                                handleLongPress();
+                            }
+                        }
+                    };
+
+
+                    @Override
+                    public void dismiss() {}
+
+                    @Override
+                    public void drag(View view, MotionEvent event) {}
+
+                    @Override
+                    public void dragEnd(View view) {}
+                })
+                .show();
 
         // check if a new list of apps was sent, otherwise fall back to saved list
         String[] packageArray = getIntent().getStringArrayExtra(LOCKED_APP_PACKAGE_LIST);
@@ -335,6 +492,23 @@ public class KioskModeActivity extends Activity {
 
         register();
     }
+
+    private void handleClick() {
+        if (shouldForward()) {
+            Intent intent = new Intent(this, EmmDebugActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } else {
+            new Handler().postDelayed(() -> mHits = new long[COUNT], 5000);
+        }
+    }
+
+    private void handleLongPress() {
+        Intent intent = new Intent(this, AppstoreActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
+
 
     @Override
     protected void onDestroy() {
