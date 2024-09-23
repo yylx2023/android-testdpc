@@ -34,6 +34,7 @@ import com.goofish.emm.http.CommonRequest;
 import com.goofish.emm.http.VersionCheckResponse;
 import com.goofish.emm.tutu.TutuUtil;
 import com.goofish.emm.util.DeviceUtil;
+import com.goofish.emm.util.Dpm;
 import com.lzf.easyfloat.EasyFloat;
 import com.lzf.easyfloat.enums.ShowPattern;
 import com.lzf.easyfloat.interfaces.OnFloatCallbacks;
@@ -106,8 +107,8 @@ import retrofit2.Call;
 public class KioskModeActivity extends Activity {
     private static final String TAG = "KioskModeActivity";
 
-    private static final String KIOSK_PREFERENCE_FILE = "kiosk_preference_file";
-    private static final String KIOSK_APPS_KEY = "kiosk_apps";
+    private static final String KIOSK_PREFERENCE_FILE = Dpm.KIOSK_PREFERENCE_FILE;
+    private static final String KIOSK_APPS_KEY = Dpm.KIOSK_APPS_KEY;
 
     public static final String LOCKED_APP_PACKAGE_LIST = "com.afwsamples.testdpc.policy.locktask.LOCKED_APP_PACKAGE_LIST";
 
@@ -441,13 +442,16 @@ public class KioskModeActivity extends Activity {
 
 
                     @Override
-                    public void dismiss() {}
+                    public void dismiss() {
+                    }
 
                     @Override
-                    public void drag(View view, MotionEvent event) {}
+                    public void drag(View view, MotionEvent event) {
+                    }
 
                     @Override
-                    public void dragEnd(View view) {}
+                    public void dragEnd(View view) {
+                    }
                 })
                 .show();
 
