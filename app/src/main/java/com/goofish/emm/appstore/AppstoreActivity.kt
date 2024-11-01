@@ -2,7 +2,6 @@ package com.goofish.emm.appstore
 
 import AppGridAdapter
 import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -15,7 +14,6 @@ import com.afwsamples.testdpc.R
 import com.blankj.utilcode.util.AppUtils
 import com.blankj.utilcode.util.ToastUtils
 import com.goofish.emm.EmmApp
-import com.goofish.emm.EmmDebugActivity
 import com.goofish.emm.http.AppListResponse
 import com.goofish.emm.http.CommonRequest
 import com.goofish.emm.http.NetCallback
@@ -24,10 +22,6 @@ import com.goofish.emm.http.Resp
 import com.goofish.emm.http.Resp.Common
 import com.goofish.emm.http.RetrofitClient.apiService
 import com.goofish.emm.util.DeviceUtil
-import com.liulishuo.okdownload.core.Util
-import com.liulishuo.okdownload.core.Util.Logger
-import com.lzf.easyfloat.EasyFloat
-import com.lzf.easyfloat.enums.ShowPattern
 
 class AppstoreActivity : Activity() {
     private lateinit var recyclerView: RecyclerView
@@ -39,24 +33,7 @@ class AppstoreActivity : Activity() {
         setContentView(R.layout.appstore)
 
 
-        Util.setLogger(object : Logger {
-            override fun e(tag: String?, msg: String?, e: Exception?) {
-                Log.e(tag, msg, e)
-            }
 
-            override fun w(tag: String?, msg: String?) {
-                Log.w(tag, msg!!)
-            }
-
-            override fun d(tag: String?, msg: String?) {
-                Log.d(tag, msg!!)
-            }
-
-            override fun i(tag: String?, msg: String?) {
-                Log.i(tag, msg!!)
-            }
-
-        })
         recyclerView = findViewById(R.id.app_grid)
         globalProgressBar = findViewById(R.id.global_progress_bar)
 

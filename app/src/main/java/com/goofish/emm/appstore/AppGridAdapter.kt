@@ -13,7 +13,6 @@ import com.goofish.emm.appstore.App
 import com.goofish.emm.download.DownloadCallback
 import com.goofish.emm.download.DownloadManager
 import com.goofish.emm.util.Dpm
-import com.liulishuo.okdownload.DownloadTask
 import com.tonyodev.fetch2.Download
 import java.io.File
 
@@ -25,7 +24,7 @@ class AppGridAdapter(
 ) : RecyclerView.Adapter<AppGridAdapter.ViewHolder>() {
 
     private var apps: List<App> = emptyList()
-    private var currentDownloadTask: DownloadTask? = null
+//    private var currentDownloadTask: DownloadTask? = null
 
     fun setData(newApps: List<App>) {
         apps = newApps

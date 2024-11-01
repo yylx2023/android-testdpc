@@ -139,10 +139,10 @@ dependencies {
 
     implementation libs.glide
 
-    implementation 'com.liulishuo.okdownload:okdownload:1.0.7'
-    implementation 'com.liulishuo.okdownload:sqlite:1.0.7'
-
-    implementation 'com.liulishuo.okdownload:okhttp:1.0.7'
+//    implementation 'com.liulishuo.okdownload:okdownload:1.0.7'
+//    implementation 'com.liulishuo.okdownload:sqlite:1.0.7'
+//
+//    implementation 'com.liulishuo.okdownload:okhttp:1.0.7'
 
     implementation "com.github.tonyofrancis.Fetch:fetch2:3.3.0"
 

@@ -114,7 +114,7 @@ public class KioskModeActivity extends Activity {
 
     //    public static final String[] DEF_LOCK_TASK = {"com.android.permissioncontroller"};
 //    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
-    public static final String[] DEF_LOCK_TASK = {TutuUtil.TUTU_PKG, "com.android.packageinstaller"};
+    public static final String[] DEF_LOCK_TASK = {TutuUtil.TUTU_PKG, "com.android.settings", "com.android.packageinstaller"};
     private static final String[] KIOSK_USER_RESTRICTIONS = {DISALLOW_SAFE_BOOT, DISALLOW_FACTORY_RESET, DISALLOW_ADD_USER, DISALLOW_MOUNT_PHYSICAL_MEDIA,
 //            DISALLOW_ADJUST_VOLUME,
             DISALLOW_UNINSTALL_APPS,
