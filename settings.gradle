@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "com.afwsamples.testdpc"
+rootProject.name = "Emm"
 include ':app', ':setupdesign', ':setupcompat'
