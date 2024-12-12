@@ -84,8 +84,8 @@
     <application
             android:name="com.goofish.emm.EmmApp"
             android:allowBackup="true"
-            android:banner="@drawable/ic_launcher"
-            android:icon="@drawable/ic_launcher"
+            android:banner="@drawable/icon"
+            android:icon="@drawable/icon"
             android:label="@string/app_name"
             android:theme="@style/AppTheme"
             tools:remove="android:appComponentFactory">
@@ -366,6 +366,10 @@
 
         <activity
                 android:name="com.goofish.emm.appstore.AppstoreActivity"
+                android:exported="true" />
+
+        <activity
+                android:name="com.goofish.emm.About"
                 android:exported="true" />
     </application>
 

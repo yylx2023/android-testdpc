@@ -22,6 +22,7 @@ import com.afwsamples.testdpc.R;
 import com.afwsamples.testdpc.common.Util;
 import com.azhon.appupdate.manager.DownloadManager;
 import com.blankj.utilcode.util.AppUtils;
+import com.goofish.emm.About;
 import com.goofish.emm.EmmApp;
 import com.goofish.emm.EmmDebugActivity;
 import com.goofish.emm.appstore.AppstoreActivity;
@@ -499,7 +500,7 @@ public class KioskModeActivity extends Activity {
 
     private void handleClick() {
         if (shouldForward()) {
-            Intent intent = new Intent(this, EmmDebugActivity.class);
+            Intent intent = new Intent(this, About.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         } else {
