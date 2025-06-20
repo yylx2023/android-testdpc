@@ -25,5 +25,10 @@
             android:layout_gravity="center_horizontal"
             android:text="退出锁定模式" />
 
-
+    <Button
+        android:id="@+id/btnCheckVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="56dp"
+        android:layout_gravity="center_horizontal"
+        android:text="检查更新" />
 </LinearLayout>

@@ -15,15 +15,15 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
-        package="com.afwsamples.testdpc"
-        android:versionCode="9006"
-        android:versionName="9.0.6"
-        tools:ignore="MissingClass">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.afwsamples.testdpc"
+    android:versionCode="9006"
+    android:versionName="9.0.6"
+    tools:ignore="MissingClass">
 
     <uses-sdk
-            android:minSdkVersion="21"
-            android:targetSdkVersion="34" />
+        android:minSdkVersion="21"
+        android:targetSdkVersion="34" />
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
@@ -75,26 +75,26 @@
     <uses-permission android:name="android.permission.UPDATE_DEVICE_MANAGEMENT_RESOURCES" />
 
     <uses-feature
-            android:name="android.hardware.wifi"
-            android:required="false" />
+        android:name="android.hardware.wifi"
+        android:required="false" />
     <uses-feature
-            android:name="android.hardware.touchscreen"
-            android:required="false" />
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
 
     <application
-            android:name="com.goofish.emm.EmmApp"
-            android:allowBackup="true"
-            android:banner="@drawable/icon"
-            android:icon="@drawable/icon"
-            android:label="@string/app_name"
-            android:theme="@style/AppTheme"
-            tools:remove="android:appComponentFactory">
+        android:name="com.goofish.emm.EmmApp"
+        android:allowBackup="true"
+        android:banner="@drawable/icon"
+        android:icon="@drawable/icon"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme"
+        tools:remove="android:appComponentFactory">
 
         <activity
-                android:name=".PolicyManagementActivity"
-                android:exported="true"
-                android:label="@string/app_name"
-                android:windowSoftInputMode="adjustPan">
+            android:name=".PolicyManagementActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustPan">
             <!--            <intent-filter>-->
             <!--                <action android:name="android.intent.action.MAIN" />-->
             <!--                <category android:name="android.intent.category.LAUNCHER" />-->
@@ -106,14 +106,14 @@
         </activity>
 
         <activity
-                android:name="com.goofish.emm.EmmDebugActivity"
-                android:exported="false" />
+            android:name="com.goofish.emm.EmmDebugActivity"
+            android:exported="false" />
 
         <activity
-                android:name="com.goofish.emm.EmmMainActivity"
-                android:exported="true"
-                android:label="@string/app_name"
-                android:windowSoftInputMode="adjustPan">
+            android:name="com.goofish.emm.EmmMainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -125,11 +125,11 @@
         </activity>
 
         <activity
-                android:name="com.goofish.emm.locktask.KioskModeActivity"
-                android:enabled="false"
-                android:exported="true"
-                android:label="@string/emm_kiosk_mode"
-                android:launchMode="singleInstance">
+            android:name="com.goofish.emm.locktask.KioskModeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -157,17 +157,17 @@
         <!--        </activity-alias>-->
 
         <activity
-                android:name=".AddAccountActivity"
-                android:exported="false"
-                android:label="@string/app_name"
-                android:theme="@style/SudThemeGlifV3.Light" />
+            android:name=".AddAccountActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/SudThemeGlifV3.Light" />
 
         <activity
-                android:name=".FinalizeActivity"
-                android:exported="true"
-                android:label="@string/app_name"
-                android:permission="android.permission.BIND_DEVICE_ADMIN"
-                android:theme="@style/SudThemeGlifV3.Light">
+            android:name=".FinalizeActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@style/SudThemeGlifV3.Light">
             <intent-filter>
                 <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -175,10 +175,10 @@
         </activity>
 
         <activity
-                android:name=".cosu.EnableCosuActivity"
-                android:exported="false"
-                android:label="@string/app_name"
-                android:theme="@style/SudThemeGlifV3.Light" />
+            android:name=".cosu.EnableCosuActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/SudThemeGlifV3.Light" />
 
         <!--        <activity-->
         <!--                android:name=".policy.locktask.KioskModeActivity"-->
@@ -195,10 +195,10 @@
         <!--        </activity>-->
 
         <activity
-                android:name=".provision.GetProvisioningModeActivity"
-                android:exported="true"
-                android:permission="android.permission.BIND_DEVICE_ADMIN"
-                android:theme="@style/DpcLoginTheme">
+            android:name=".provision.GetProvisioningModeActivity"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@style/DpcLoginTheme">
             <intent-filter>
                 <action android:name="android.app.action.GET_PROVISIONING_MODE" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -206,9 +206,9 @@
         </activity>
 
         <activity
-                android:name=".provision.ProvisioningSuccessActivity"
-                android:exported="true"
-                android:theme="@android:style/Theme.NoDisplay">
+            android:name=".provision.ProvisioningSuccessActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
                 <action android:name="android.app.action.PROVISIONING_SUCCESSFUL" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -216,10 +216,10 @@
         </activity>
 
         <activity
-                android:name=".WorkPolicyInfoActivity"
-                android:exported="true"
-                android:label="@string/work_policy_info_name"
-                android:launchMode="singleTask">
+            android:name=".WorkPolicyInfoActivity"
+            android:exported="true"
+            android:label="@string/work_policy_info_name"
+            android:launchMode="singleTask">
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />
                 <action android:name="android.settings.SHOW_WORK_POLICY_INFO" />
@@ -227,9 +227,9 @@
         </activity>
 
         <activity
-                android:name="android.app.Activity"
-                android:exported="true"
-                android:permission="android.permission.LAUNCH_DEVICE_MANAGER_SETUP">
+            android:name="android.app.Activity"
+            android:exported="true"
+            android:permission="android.permission.LAUNCH_DEVICE_MANAGER_SETUP">
             <intent-filter>
                 <action android:name="android.app.action.ROLE_HOLDER_PROVISION_MANAGED_DEVICE_FROM_TRUSTED_SOURCE" />
                 <action android:name="android.app.action.ROLE_HOLDER_PROVISION_MANAGED_PROFILE" />
@@ -240,14 +240,14 @@
         </activity>
 
         <receiver
-                android:name=".DeviceAdminReceiver"
-                android:description="@string/app_name"
-                android:exported="true"
-                android:label="@string/app_name"
-                android:permission="android.permission.BIND_DEVICE_ADMIN">
+            android:name=".DeviceAdminReceiver"
+            android:description="@string/app_name"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
             <meta-data
-                    android:name="android.app.device_admin"
-                    android:resource="@xml/device_admin_receiver" />
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_receiver" />
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
                 <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
@@ -258,9 +258,9 @@
         </receiver>
 
         <receiver
-                android:name=".DelegatedAdminReceiver"
-                android:exported="true"
-                android:permission="android.permission.BIND_DEVICE_ADMIN">
+            android:name=".DelegatedAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
             <intent-filter>
                 <action android:name="android.app.action.CHOOSE_PRIVATE_KEY_ALIAS" />
                 <action android:name="android.app.action.NETWORK_LOGS_AVAILABLE" />
@@ -269,83 +269,83 @@
         </receiver>
 
         <receiver
-                android:name=".BootReceiver"
-                android:exported="true">
+            android:name=".BootReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
         <receiver
-                android:name=".policy.resetpassword.ResetPasswordService$LockedBootCompletedReceiver"
-                android:directBootAware="true"
-                android:enabled="@bool/is_o_or_later"
-                android:exported="true">
+            android:name=".policy.resetpassword.ResetPasswordService$LockedBootCompletedReceiver"
+            android:directBootAware="true"
+            android:enabled="@bool/is_o_or_later"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
         <service
-                android:name=".policy.resetpassword.ResetPasswordService"
-                android:directBootAware="true"
-                android:enabled="@bool/is_o_or_later"
-                android:exported="false"
-                android:foregroundServiceType="systemExempted"
-                tools:ignore="ForegroundServicePermission,UnusedAttribute" />
+            android:name=".policy.resetpassword.ResetPasswordService"
+            android:directBootAware="true"
+            android:enabled="@bool/is_o_or_later"
+            android:exported="false"
+            android:foregroundServiceType="systemExempted"
+            tools:ignore="ForegroundServicePermission,UnusedAttribute" />
 
         <provider
-                android:name="androidx.startup.InitializationProvider"
-                android:authorities="${applicationId}.androidx-startup"
-                tools:node="remove" />
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            tools:node="remove" />
 
         <provider
-                android:name="androidx.core.content.FileProvider"
-                android:authorities="${applicationId}.fileprovider"
-                android:exported="false"
-                android:grantUriPermissions="true">
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
             <meta-data
-                    android:name="android.support.FILE_PROVIDER_PATHS"
-                    android:resource="@xml/filepaths" />
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
         </provider>
 
         <provider
-                android:name="com.afwsamples.testdpc.UserIconContentProvider"
-                android:authorities="{applicationId}.usericoncontentprovider"
-                android:exported="true"
-                android:grantUriPermissions="true"></provider>
+            android:name="com.afwsamples.testdpc.UserIconContentProvider"
+            android:authorities="{applicationId}.usericoncontentprovider"
+            android:exported="true"
+            android:grantUriPermissions="true"></provider>
 
         <service
-                android:name=".profilepolicy.apprestrictions.AppRestrictionsProxy"
-                android:exported="false">
+            android:name=".profilepolicy.apprestrictions.AppRestrictionsProxy"
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.android.vending.dpc.APPLICATION_RESTRICTIONS_PROXY" />
             </intent-filter>
         </service>
 
         <service
-                android:name=".comp.ProfileOwnerService"
-                android:exported="true"
-                android:permission="android.permission.BIND_DEVICE_ADMIN" />
+            android:name=".comp.ProfileOwnerService"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN" />
 
         <service
-                android:name=".comp.DeviceOwnerService"
-                android:exported="true"
-                android:permission="android.permission.BIND_DEVICE_ADMIN" />
+            android:name=".comp.DeviceOwnerService"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN" />
 
         <service
-                android:name=".DeviceAdminService"
-                android:enabled="@bool/is_o_or_later"
-                android:exported="true"
-                android:permission="android.permission.BIND_DEVICE_ADMIN">
+            android:name=".DeviceAdminService"
+            android:enabled="@bool/is_o_or_later"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_SERVICE" />
             </intent-filter>
         </service>
 
         <service
-                android:name=".feedback.AppStatesService"
-                android:exported="false">
+            android:name=".feedback.AppStatesService"
+            android:exported="false">
             <intent-filter>
                 <action android:name="androidx.enterprise.feedback.action.APP_STATES" />
             </intent-filter>
@@ -353,24 +353,32 @@
 
 
         <service
-                android:name="com.goofish.emm.VolumeButtonService"
-                android:exported="false" />
+            android:name="com.goofish.emm.VolumeButtonService"
+            android:exported="false" />
 
         <receiver
-                android:name="com.goofish.emm.VolumeButtonReceiver"
-                android:exported="true">
+            android:name="com.goofish.emm.VolumeButtonReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
 
         <activity
-                android:name="com.goofish.emm.appstore.AppstoreActivity"
-                android:exported="true" />
+            android:name="com.goofish.emm.appstore.AppstoreActivity"
+            android:exported="true" />
 
         <activity
-                android:name="com.goofish.emm.About"
-                android:exported="true" />
+            android:name="com.goofish.emm.About"
+            android:label="关于我们"
+            android:icon="@drawable/icon"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.goofish.emm.action.ON_DESK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+        </activity>
     </application>
 
 </manifest>

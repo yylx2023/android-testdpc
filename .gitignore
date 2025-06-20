@@ -8,3 +8,5 @@ bazel-testlogs
 build/
 .gradle
 local.properties
+shuoduoduo.apk
+.DS_Store

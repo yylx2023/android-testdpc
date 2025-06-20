@@ -57,6 +57,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.Handler;
@@ -73,9 +74,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import static android.os.UserManager.DISALLOW_ADD_USER;
@@ -83,6 +88,9 @@ import static android.os.UserManager.DISALLOW_FACTORY_RESET;
 import static android.os.UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA;
 import static android.os.UserManager.DISALLOW_SAFE_BOOT;
 import static android.os.UserManager.DISALLOW_UNINSTALL_APPS;
+
+import static android.app.admin.DevicePolicyManager.LOCK_TASK_FEATURE_HOME;
+import static android.app.admin.DevicePolicyManager.LOCK_TASK_FEATURE_NOTIFICATIONS;
 
 import androidx.annotation.NonNull;
 
@@ -115,7 +123,21 @@ public class KioskModeActivity extends Activity {
 
     //    public static final String[] DEF_LOCK_TASK = {"com.android.permissioncontroller"};
 //    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
-    public static final String[] DEF_LOCK_TASK = {TutuUtil.TUTU_PKG, "com.android.settings", "com.android.packageinstaller"};
+
+    //在桌面显示的app
+    public static final String[] APPS = {TutuUtil.TUTU_PKG, "com.tencent.wemeet.app"};
+
+    //无需在桌面显示的
+    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
+
+    // 是否在 Lock Task 模式下启用 HOME 键
+    private static final boolean ENABLE_HOME_KEY_IN_LOCK_TASK = true;
+
+    // 是否在 Lock Task 模式下启用通知功能
+    private static final boolean ENABLE_NOTIFICATIONS_IN_LOCK_TASK = false;
+
+    // 内部组件的 action
+    private static final String INTERNAL_COMPONENT_ACTION = "com.goofish.emm.action.ON_DESK";
     private static final String[] KIOSK_USER_RESTRICTIONS = {DISALLOW_SAFE_BOOT, DISALLOW_FACTORY_RESET, DISALLOW_ADD_USER, DISALLOW_MOUNT_PHYSICAL_MEDIA,
 //            DISALLOW_ADJUST_VOLUME,
             DISALLOW_UNINSTALL_APPS,
@@ -126,6 +148,12 @@ public class KioskModeActivity extends Activity {
     private ArrayList<String> mKioskPackages;
     private DevicePolicyManager mDevicePolicyManager;
     private PackageManager mPackageManager;
+
+    private RecyclerView mAppsRecyclerView;
+    private KioskAppsAdapter mAppsAdapter;
+    private List<AppInfo> mAppInfoList;
+
+
 
 
     private int COUNT = 10;
@@ -139,17 +167,100 @@ public class KioskModeActivity extends Activity {
                 onBackdoorClicked();
             }
         }
+    };
 
+    // 应用安装/卸载监听器 - 只处理 APPS 白名单中的应用
+    private BroadcastReceiver packageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (Intent.ACTION_PACKAGE_ADDED.equals(action) ||
+                Intent.ACTION_PACKAGE_REMOVED.equals(action) ||
+                Intent.ACTION_PACKAGE_REPLACED.equals(action)) {
 
+                String packageName = getPackageNameFromIntent(intent);
+                boolean replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false);
+
+                Log.i(TAG, "Package event: " + action + ", package: " + packageName + ", replacing: " + replacing);
+
+                // 检查是否需要处理这个包的变化
+                boolean shouldProcess = isPackageInWhitelist(packageName) ||
+                                       getPackageName().equals(packageName);
+
+                if (!shouldProcess) {
+                    Log.d(TAG, "Package " + packageName + " not in APPS whitelist and not current app, ignoring");
+                    return;
+                }
+
+                Log.i(TAG, "Package " + packageName + " needs processing, refreshing app list");
+
+                // 如果是替换操作（更新），在 PACKAGE_REPLACED 时才刷新
+                if (Intent.ACTION_PACKAGE_REPLACED.equals(action) || !replacing) {
+                    // 延迟刷新，确保系统完成包管理操作
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            refreshAppList();
+                        }
+                    }, 500);
+                }
+            }
+        }
+
+        private String getPackageNameFromIntent(Intent intent) {
+            if (intent.getData() == null) {
+                return null;
+            }
+            return intent.getData().getSchemeSpecificPart();
+        }
     };
 
     private void register() {
+        // 注册退出 Lock Task 广播
         IntentFilter filter = new IntentFilter(TutuUtil.ACTION_EXIT_LOCKTASK);
         LocalBroadcastManager.getInstance(EmmApp.app).registerReceiver(receiver, filter);
+
+        // 注册应用安装/卸载广播
+        IntentFilter packageFilter = new IntentFilter();
+        packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        packageFilter.addDataScheme("package");
+        registerReceiver(packageReceiver, packageFilter);
+
+        Log.i(TAG, "Broadcast receivers registered");
     }
 
     private void unregister() {
-        LocalBroadcastManager.getInstance(EmmApp.app).unregisterReceiver(receiver);
+        try {
+            LocalBroadcastManager.getInstance(EmmApp.app).unregisterReceiver(receiver);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to unregister local receiver: " + e.getMessage());
+        }
+
+        try {
+            unregisterReceiver(packageReceiver);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to unregister package receiver: " + e.getMessage());
+        }
+
+        Log.i(TAG, "Broadcast receivers unregistered");
+    }
+
+    /**
+     * 检查包名是否在 APPS 白名单中
+     */
+    private boolean isPackageInWhitelist(String packageName) {
+        if (packageName == null) {
+            return false;
+        }
+
+        for (String whitelistPackage : APPS) {
+            if (whitelistPackage.equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     boolean shouldForward() {
@@ -399,8 +510,12 @@ public class KioskModeActivity extends Activity {
 
                     @Override
                     public void createdResult(boolean isCreated, String msg, View view) {
+                        Log.i(TAG, "Float window created: " + isCreated + ", msg: " + msg);
                         if (isCreated) {
+                            Log.i(TAG, "Float window successfully created and should be visible");
                             // 可以在这里进行一些初始化操作
+                        } else {
+                            Log.e(TAG, "Failed to create float window: " + msg);
                         }
                     }
 
@@ -425,8 +540,12 @@ public class KioskModeActivity extends Activity {
                             case MotionEvent.ACTION_UP:
                                 view.removeCallbacks(longPressRunnable);
                                 long pressDuration = System.currentTimeMillis() - touchStartTime;
+                                Log.d(TAG, "ACTION_UP: isDragging=" + isDragging + ", pressDuration=" + pressDuration + ", LONG_PRESS_DURATION=" + LONG_PRESS_DURATION);
                                 if (!isDragging && pressDuration < LONG_PRESS_DURATION) {
+                                    Log.i(TAG, "Calling handleClick()");
                                     handleClick();
+                                } else {
+                                    Log.d(TAG, "Not calling handleClick: isDragging=" + isDragging + " or pressDuration too long");
                                 }
                                 break;
                         }
@@ -459,12 +578,17 @@ public class KioskModeActivity extends Activity {
         // check if a new list of apps was sent, otherwise fall back to saved list
         String[] packageArray = getIntent().getStringArrayExtra(LOCKED_APP_PACKAGE_LIST);
         if (packageArray != null) {
-            mKioskPackages = new ArrayList<>();
+            // 使用LinkedHashSet去重，保持顺序
+            LinkedHashSet<String> packageSet = new LinkedHashSet<>();
 
-            Collections.addAll(mKioskPackages, packageArray);
+            Collections.addAll(packageSet, packageArray);
+            Collections.addAll(packageSet, APPS);
+            Collections.addAll(packageSet, DEF_LOCK_TASK);
 
-            Collections.addAll(mKioskPackages, DEF_LOCK_TASK);
+            // 转换为ArrayList
+            mKioskPackages = new ArrayList<>(packageSet);
 
+            // 确保当前应用在最后，作为后门
             mKioskPackages.remove(getPackageName());
             mKioskPackages.add(getPackageName());
 
@@ -476,34 +600,43 @@ public class KioskModeActivity extends Activity {
             setDefaultKioskPolicies(true);
         }
 
-        // remove TestDPC package and add to end of list; it will act as back door
-        mKioskPackages.remove(getPackageName());
-        mKioskPackages.add(getPackageName());
-
-        // create list view with all kiosk packages
-//        final KioskAppsArrayAdapter kioskAppsArrayAdapter =
-//                new KioskAppsArrayAdapter(this, R.id.pkg_name, mKioskPackages);
-//        ListView listView = new ListView(this);
-//        listView.setAdapter(kioskAppsArrayAdapter);
-//        listView.setOnItemClickListener(
-//                new AdapterView.OnItemClickListener() {
-//                    @Override
-//                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//                        kioskAppsArrayAdapter.onItemClick(parent, view, position, id);
-//                    }
-//                });
-//        setContentView(listView);
         setContentView(R.layout.activity_empty);
+
+        // 调试信息：检查当前 Intent
+        Intent currentIntent = getIntent();
+        if (currentIntent != null) {
+            Log.i(TAG, "onCreate - Intent action: " + currentIntent.getAction());
+            Log.i(TAG, "onCreate - Intent categories: " + currentIntent.getCategories());
+        }
+
+        // 检查是否为默认 HOME Activity
+        checkIfDefaultHomeActivity();
+
+        // 初始化RecyclerView
+        initRecyclerView();
 
         register();
     }
 
     private void handleClick() {
-        if (shouldForward()) {
+        Log.i(TAG, "handleClick() called");
+        boolean shouldForwardResult = shouldForward();
+        Log.i(TAG, "shouldForward() returned: " + shouldForwardResult);
+
+        if (shouldForwardResult) {
+            // 连续点击10次：跳转到 About 页面（保持原逻辑）
+            Log.i(TAG, "10 consecutive clicks detected, launching About activity");
             Intent intent = new Intent(this, About.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         } else {
+            // 单击：返回到 KioskModeActivity 页面
+            Log.i(TAG, "Single click detected, returning to KioskModeActivity");
+            Intent intent = new Intent(this, KioskModeActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+
+            // 延迟重置计数器（保持原逻辑）
             new Handler().postDelayed(() -> mHits = new long[COUNT], 5000);
         }
     }
@@ -525,29 +658,65 @@ public class KioskModeActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.e(TAG, "onResume");
+        Log.e(TAG, "onResume - KioskModeActivity is now visible");
 
-        startApp(TutuUtil.TUTU_PKG);
-//        finish();
+        // 不再自动启动应用，让用户可以看到桌面并选择应用
+        // 这样 HOME 键就能正确返回到这个桌面界面
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i(TAG, "onNewIntent called - Intent: " + intent);
+        if (intent != null) {
+            Log.i(TAG, "Intent action: " + intent.getAction());
+            Log.i(TAG, "Intent categories: " + intent.getCategories());
+        }
+
+        // 当用户按 HOME 键时，会触发这个方法
+        // 确保 Activity 回到前台并显示桌面
+        setIntent(intent);
+
+        // 确保界面刷新
+        if (mAppsAdapter != null) {
+            mAppsAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        Log.e(TAG, "onStart");
+        Log.d(TAG, "onStart called");
+
         // start lock task mode if it's not already active
         ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         // ActivityManager.getLockTaskModeState api is not available in pre-M.
         if (Util.SDK_INT < VERSION_CODES.M) {
-            if (!am.isInLockTaskMode()) {
+            boolean isInLockTask = am.isInLockTaskMode();
+            Log.d(TAG, "Pre-M device, isInLockTaskMode: " + isInLockTask);
+            if (!isInLockTask) {
+                Log.i(TAG, "Starting Lock Task mode (Pre-M)");
                 startLockTask();
             }
         } else {
-            if (am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_NONE) {
+            int lockTaskState = am.getLockTaskModeState();
+            Log.d(TAG, "Lock Task Mode State: " + lockTaskState + " (NONE=" + ActivityManager.LOCK_TASK_MODE_NONE + ")");
+            if (lockTaskState == ActivityManager.LOCK_TASK_MODE_NONE) {
+                Log.i(TAG, "Starting Lock Task mode (M+)");
                 startLockTask();
             }
         }
 
+        // 检查当前的 Lock Task Features
+        if (Util.SDK_INT >= VERSION_CODES.P) {
+            try {
+                int currentFeatures = mDevicePolicyManager.getLockTaskFeatures(mAdminComponentName);
+                Log.i(TAG, "Current Lock Task Features: " + currentFeatures);
+                Log.i(TAG, "HOME feature enabled: " + ((currentFeatures & LOCK_TASK_FEATURE_HOME) != 0));
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to get Lock Task Features: " + e.getMessage());
+            }
+        }
     }
 
     public void onBackdoorClicked() {
@@ -579,8 +748,14 @@ public class KioskModeActivity extends Activity {
             for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
                 setUserRestriction(userRestriction, active);
             }
+
+            // 设置 Lock Task Features 以启用 HOME 键
+            setLockTaskFeatures(active);
         } else {
             restorePreviousConfiguration();
+
+            // 清除 Lock Task Features
+            setLockTaskFeatures(active);
         }
 
         // set lock task packages
@@ -617,6 +792,46 @@ public class KioskModeActivity extends Activity {
                 boolean prevSettingValue = sharedPreferences.getBoolean(userRestriction, false);
                 setUserRestriction(userRestriction, prevSettingValue);
             }
+        }
+    }
+
+    /**
+     * 设置 Lock Task Features 以控制在 Lock Task 模式下可用的功能
+     * @param enable 是否启用功能
+     */
+    @TargetApi(VERSION_CODES.P)
+    private void setLockTaskFeatures(boolean enable) {
+        Log.d(TAG, "setLockTaskFeatures called with enable=" + enable + ", ENABLE_HOME_KEY_IN_LOCK_TASK=" + ENABLE_HOME_KEY_IN_LOCK_TASK);
+        Log.d(TAG, "Current SDK_INT=" + Util.SDK_INT + ", VERSION_CODES.P=" + VERSION_CODES.P);
+
+        if (Util.SDK_INT >= VERSION_CODES.P) {
+            try {
+                if (enable && ENABLE_HOME_KEY_IN_LOCK_TASK) {
+                    // 构建功能标志：启用 HOME 键，可选启用通知功能，禁用多任务键（OVERVIEW）
+                    int features = LOCK_TASK_FEATURE_HOME;
+                    if (ENABLE_NOTIFICATIONS_IN_LOCK_TASK) {
+                        features |= LOCK_TASK_FEATURE_NOTIFICATIONS;
+                    }
+
+                    mDevicePolicyManager.setLockTaskFeatures(mAdminComponentName, features);
+                    Log.i(TAG, "Lock Task Features enabled: HOME(" + LOCK_TASK_FEATURE_HOME + ")");
+                    Log.i(TAG, "NOTIFICATIONS: " + (ENABLE_NOTIFICATIONS_IN_LOCK_TASK ? "ENABLED" : "DISABLED"));
+                    Log.i(TAG, "OVERVIEW (Recent Tasks): DISABLED");
+                    Log.i(TAG, "Total features value: " + features);
+
+                    // 验证设置是否成功
+                    int currentFeatures = mDevicePolicyManager.getLockTaskFeatures(mAdminComponentName);
+                    Log.i(TAG, "Verified current Lock Task Features: " + currentFeatures);
+                } else {
+                    // 禁用所有功能（默认行为）
+                    mDevicePolicyManager.setLockTaskFeatures(mAdminComponentName, 0);
+                    Log.i(TAG, "Lock Task Features disabled");
+                }
+            } catch (SecurityException e) {
+                Log.e(TAG, "Failed to set Lock Task Features: " + e.getMessage());
+            }
+        } else {
+            Log.w(TAG, "Lock Task Features require API level 28 (Android P) or higher, current SDK: " + Util.SDK_INT);
         }
     }
 
@@ -704,5 +919,207 @@ public class KioskModeActivity extends Activity {
 
             }
         });
+    }
+
+    /**
+     * 初始化RecyclerView
+     */
+    private void initRecyclerView() {
+        mAppsRecyclerView = findViewById(R.id.apps_recycler_view);
+
+        // 设置网格布局管理器，根据屏幕宽度动态计算列数
+        int spanCount = calculateSpanCount();
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, spanCount);
+        mAppsRecyclerView.setLayoutManager(gridLayoutManager);
+
+        // 准备应用数据
+        prepareAppData();
+
+        // 创建并设置适配器
+        mAppsAdapter = new KioskAppsAdapter(this, mAppInfoList);
+        mAppsAdapter.setOnAppClickListener(new KioskAppsAdapter.OnAppClickListener() {
+            @Override
+            public void onAppClick(AppInfo appInfo) {
+                handleAppClick(appInfo);
+            }
+        });
+        mAppsRecyclerView.setAdapter(mAppsAdapter);
+    }
+
+    /**
+     * 准备应用数据 - 包括外部应用和内部组件
+     */
+    private void prepareAppData() {
+        mAppInfoList = new ArrayList<>();
+
+        // 1. 加载 APPS 白名单中的外部应用
+        loadExternalApps();
+
+        // 2. 加载本应用中具有 ON_DESK action 的内部组件
+        loadInternalComponents();
+
+        Log.i(TAG, "Prepared app data: " + mAppInfoList.size() + " items total");
+    }
+
+    /**
+     * 加载外部应用
+     */
+    private void loadExternalApps() {
+        for (String packageName : APPS) {
+            try {
+                ApplicationInfo applicationInfo = mPackageManager.getApplicationInfo(packageName, 0);
+                String appName = applicationInfo.loadLabel(mPackageManager).toString();
+                android.graphics.drawable.Drawable appIcon = applicationInfo.loadIcon(mPackageManager);
+
+                AppInfo appInfo = new AppInfo(packageName, appName, appIcon);
+                mAppInfoList.add(appInfo);
+                Log.d(TAG, "Added external app: " + appName + " (" + packageName + ")");
+            } catch (PackageManager.NameNotFoundException e) {
+                Log.w(TAG, "External app not found: " + packageName, e);
+            }
+        }
+    }
+
+    /**
+     * 加载本应用中具有 ON_DESK action 的内部组件
+     */
+    private void loadInternalComponents() {
+        Intent intent = new Intent(INTERNAL_COMPONENT_ACTION);
+        intent.setPackage(getPackageName()); // 只查询本应用的组件
+
+        List<ResolveInfo> resolveInfos = mPackageManager.queryIntentActivities(intent, 0);
+
+        for (ResolveInfo resolveInfo : resolveInfos) {
+            if (resolveInfo.activityInfo != null) {
+                try {
+                    String componentName = resolveInfo.activityInfo.packageName + "/" + resolveInfo.activityInfo.name;
+                    String appName = resolveInfo.loadLabel(mPackageManager).toString();
+                    android.graphics.drawable.Drawable appIcon = resolveInfo.loadIcon(mPackageManager);
+
+                    AppInfo appInfo = new AppInfo(componentName, appName, appIcon, INTERNAL_COMPONENT_ACTION);
+                    mAppInfoList.add(appInfo);
+                    Log.d(TAG, "Added internal component: " + appName + " (" + componentName + ")");
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed to load internal component: " + resolveInfo.activityInfo.name, e);
+                }
+            }
+        }
+    }
+
+    /**
+     * 刷新应用列表 - 只刷新 UI，不更新 Kiosk 包列表
+     */
+    private void refreshAppList() {
+        Log.i(TAG, "Refreshing app list due to package changes in APPS whitelist");
+
+        // 重新准备应用数据（只处理 APPS 白名单中的应用）
+        prepareAppData();
+
+        // 在主线程中更新UI
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mAppsAdapter != null) {
+                    // 更新适配器数据
+                    mAppsAdapter.updateAppList(mAppInfoList);
+                    Log.i(TAG, "App list refreshed, total apps: " + mAppInfoList.size());
+                } else {
+                    Log.w(TAG, "Apps adapter is null, cannot refresh");
+                }
+            }
+        });
+    }
+
+
+
+    /**
+     * 处理应用点击事件 - 支持外部应用和内部组件
+     */
+    private void handleAppClick(AppInfo appInfo) {
+        if (appInfo.isExternalApp()) {
+            // 处理外部应用点击
+            handleExternalAppClick(appInfo);
+        } else if (appInfo.isInternalComponent()) {
+            // 处理内部组件点击
+            handleInternalComponentClick(appInfo);
+        } else {
+            Log.w(TAG, "Unknown app info type: " + appInfo.getItemType());
+        }
+    }
+
+    /**
+     * 处理外部应用点击
+     */
+    private void handleExternalAppClick(AppInfo appInfo) {
+        String packageName = appInfo.getPackageName();
+
+        if (getPackageName().equals(packageName)) {
+            // 如果点击的是当前应用，执行后门操作
+            onBackdoorClicked();
+            return;
+        }
+
+        // 启动外部应用
+        Log.i(TAG, "Launching external app: " + appInfo.getAppName() + " (" + packageName + ")");
+        KioskAppsAdapter.launchApp(this, packageName);
+    }
+
+    /**
+     * 处理内部组件点击
+     */
+    private void handleInternalComponentClick(AppInfo appInfo) {
+        try {
+            String componentName = appInfo.getComponentName();
+            String action = appInfo.getAction();
+
+            Log.i(TAG, "Launching internal component: " + appInfo.getAppName() + " (" + componentName + ")");
+
+            Intent intent = new Intent(action);
+            intent.setComponent(android.content.ComponentName.unflattenFromString(componentName));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to launch internal component: " + appInfo.getAppName(), e);
+            Toast.makeText(this, "无法启动 " + appInfo.getAppName(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 根据屏幕宽度计算网格列数
+     */
+    private int calculateSpanCount() {
+        android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+
+        // 每个应用项大约需要120dp宽度（包括padding）
+        int spanCount = (int) (dpWidth / 120);
+
+        // 最少2列，最多6列
+        return Math.max(2, Math.min(spanCount, 6));
+    }
+
+    /**
+     * 检查当前应用是否为默认的 HOME Activity
+     */
+    private void checkIfDefaultHomeActivity() {
+        try {
+            Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+            homeIntent.addCategory(Intent.CATEGORY_HOME);
+
+            ResolveInfo resolveInfo = mPackageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY);
+            if (resolveInfo != null && resolveInfo.activityInfo != null) {
+                String defaultHome = resolveInfo.activityInfo.packageName + "/" + resolveInfo.activityInfo.name;
+                String currentActivity = getPackageName() + "/" + getClass().getName();
+
+                Log.i(TAG, "Default HOME Activity: " + defaultHome);
+                Log.i(TAG, "Current Activity: " + currentActivity);
+                Log.i(TAG, "Is default HOME: " + defaultHome.equals(currentActivity));
+            } else {
+                Log.w(TAG, "Could not resolve default HOME Activity");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking default HOME Activity: " + e.getMessage());
+        }
     }
 }
