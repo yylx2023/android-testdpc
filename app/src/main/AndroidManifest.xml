@@ -107,11 +107,13 @@
 
         <activity
             android:name="com.goofish.emm.EmmDebugActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
 
         <activity
             android:name="com.goofish.emm.EmmMainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustPan">
             <intent-filter>
@@ -128,6 +130,7 @@
             android:name="com.goofish.emm.locktask.KioskModeActivity"
             android:enabled="false"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:label="@string/app_name"
             android:launchMode="singleInstance">
             <intent-filter>
@@ -366,11 +369,13 @@
 
         <activity
             android:name="com.goofish.emm.appstore.AppstoreActivity"
+            android:screenOrientation="portrait"
             android:exported="true" />
 
         <activity
             android:name="com.goofish.emm.About"
             android:label="关于我们"
+            android:screenOrientation="portrait"
             android:icon="@drawable/icon"
             android:exported="true">
             <intent-filter>
