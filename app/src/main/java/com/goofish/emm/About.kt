@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -32,7 +33,13 @@ class About : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContentView(R.layout.activity_about);
+        setContentView(R.layout.activity_about)
+
+        // Setup ActionBar with back button
+        actionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "关于我们"
+        }
 
         val adsElement = Element()
         adsElement.setTitle("Advertise with us")
@@ -126,5 +133,15 @@ class About : Activity() {
                 ToastUtils.showShort("网络异常请稍后重试~${statusCode}")
             }
         }!!)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                finish()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 }

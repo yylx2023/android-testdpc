@@ -24,16 +24,40 @@ class AppGridAdapter(
 ) : RecyclerView.Adapter<AppGridAdapter.ViewHolder>() {
 
     private var apps: List<App> = emptyList()
-//    private var currentDownloadTask: DownloadTask? = null
+
+    // 维护下载状态和 ViewHolder 引用
+    private val downloadingApps = mutableMapOf<String, DownloadState>()
+    private val viewHolders = mutableMapOf<String, ViewHolder>()
+
+    data class DownloadState(
+        var progress: Int = 0,
+        var isDownloading: Boolean = false,
+        var isInstalling: Boolean = false
+    )
+
+    // Payload 常量，用于局部更新
+    companion object {
+        private const val PAYLOAD_PROGRESS = "progress"
+        private const val PAYLOAD_STATUS = "status"
+    }
 
     fun setData(newApps: List<App>) {
         apps = newApps
         notifyDataSetChanged()
     }
 
+    private fun getAppPosition(packageName: String): Int {
+        return apps.indexOfFirst { it.packageName == packageName }
+    }
+
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val iconView: ImageView = view.findViewById(R.id.app_icon)
         val nameView: TextView = view.findViewById(R.id.app_name)
+        val statusText: TextView = view.findViewById(R.id.status_text)
+        val statusBadge: ImageView = view.findViewById(R.id.status_badge)
+        val progressContainer: View = view.findViewById(R.id.progress_container)
+        val downloadProgress: android.widget.ProgressBar = view.findViewById(R.id.download_progress)
+        val progressText: TextView = view.findViewById(R.id.progress_text)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -43,16 +67,139 @@ class AppGridAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        onBindViewHolder(holder, position, mutableListOf())
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
         val app = apps[position]
 
+        // 如果是局部更新（有 payload）
+        if (payloads.isNotEmpty()) {
+            val payload = payloads[0] as? String
+            when (payload) {
+                PAYLOAD_PROGRESS -> {
+                    // 只更新进度条，不重新加载图片等
+                    val downloadState = downloadingApps[app.packageName]
+                    if (downloadState?.isDownloading == true) {
+                        holder.downloadProgress.progress = downloadState.progress
+                        holder.progressText.text = "${downloadState.progress}%"
+                        Log.d("AppGridAdapter", "Partial update: progress=${downloadState.progress}%")
+                    }
+                    return
+                }
+                PAYLOAD_STATUS -> {
+                    // 只更新状态，不重新加载图片
+                    updateStatusOnly(holder, app)
+                    return
+                }
+            }
+        }
+
+        // 完整绑定（首次加载或完全刷新）
         holder.nameView.text = app.name
-        Glide.with(holder.itemView.context).load(app.iconUrl).into(holder.iconView)
+        Glide.with(holder.itemView.context)
+            .load(app.iconUrl)
+            .placeholder(android.R.drawable.sym_def_app_icon)
+            .error(android.R.drawable.sym_def_app_icon)
+            .into(holder.iconView)
+
+        // 保存 ViewHolder 引用
+        viewHolders[app.packageName] = holder
+
+        // Check if app is installed
+        val isInstalled = AppUtils.isAppInstalled(app.packageName)
+        val downloadState = downloadingApps[app.packageName]
+
+        Log.d("AppGridAdapter", "onBindViewHolder (full): pos=$position, pkg=${app.packageName}, " +
+                "isInstalled=$isInstalled, downloadState=$downloadState")
+
+        when {
+            // 已安装
+            isInstalled -> {
+                Log.d("AppGridAdapter", "Showing installed state for ${app.name}")
+                holder.statusText.text = "已安装"
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_green_dark))
+                holder.statusBadge.visibility = View.VISIBLE
+                holder.statusBadge.setImageResource(android.R.drawable.checkbox_on_background)
+                holder.progressContainer.visibility = View.GONE
+                // 清除下载状态和引用
+                downloadingApps.remove(app.packageName)
+                viewHolders.remove(app.packageName)
+            }
+            // 安装中
+            downloadState?.isInstalling == true -> {
+                Log.d("AppGridAdapter", "Showing installing state for ${app.name}")
+                holder.statusText.text = "安装中..."
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
+                holder.statusBadge.visibility = View.GONE
+                holder.progressContainer.visibility = View.GONE
+            }
+            // 下载中
+            downloadState?.isDownloading == true -> {
+                Log.d("AppGridAdapter", "Showing downloading state for ${app.name}, progress=${downloadState.progress}%")
+                holder.statusText.text = "下载中..."
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
+                holder.statusBadge.visibility = View.GONE
+                holder.progressContainer.visibility = View.VISIBLE
+                holder.downloadProgress.progress = downloadState.progress
+                holder.progressText.text = "${downloadState.progress}%"
+                Log.d("AppGridAdapter", "Progress bar set to ${downloadState.progress}%, visibility=${holder.progressContainer.visibility}")
+            }
+            // 未安装
+            else -> {
+                Log.d("AppGridAdapter", "Showing not installed state for ${app.name}")
+                holder.statusText.text = "点击下载"
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_blue_dark))
+                holder.statusBadge.visibility = View.GONE
+                holder.progressContainer.visibility = View.GONE
+                viewHolders.remove(app.packageName)
+            }
+        }
 
         holder.itemView.setOnClickListener {
-            if (AppUtils.isAppInstalled(app.packageName)) {
+            if (isInstalled) {
                 launchApp(app.packageName, holder.itemView.context)
-            } else {
+            } else if (downloadState?.isDownloading != true) {
+                // 只有在未下载时才允许点击下载
                 startDownload(app)
+            }
+        }
+    }
+
+    private fun updateStatusOnly(holder: ViewHolder, app: App) {
+        val isInstalled = AppUtils.isAppInstalled(app.packageName)
+        val downloadState = downloadingApps[app.packageName]
+
+        when {
+            isInstalled -> {
+                holder.statusText.text = "已安装"
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_green_dark))
+                holder.statusBadge.visibility = View.VISIBLE
+                holder.statusBadge.setImageResource(android.R.drawable.checkbox_on_background)
+                holder.progressContainer.visibility = View.GONE
+                downloadingApps.remove(app.packageName)
+                viewHolders.remove(app.packageName)
+            }
+            downloadState?.isInstalling == true -> {
+                holder.statusText.text = "安装中..."
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
+                holder.statusBadge.visibility = View.GONE
+                holder.progressContainer.visibility = View.GONE
+            }
+            downloadState?.isDownloading == true -> {
+                holder.statusText.text = "下载中..."
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
+                holder.statusBadge.visibility = View.GONE
+                holder.progressContainer.visibility = View.VISIBLE
+                holder.downloadProgress.progress = downloadState.progress
+                holder.progressText.text = "${downloadState.progress}%"
+            }
+            else -> {
+                holder.statusText.text = "点击下载"
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_blue_dark))
+                holder.statusBadge.visibility = View.GONE
+                holder.progressContainer.visibility = View.GONE
+                viewHolders.remove(app.packageName)
             }
         }
     }
@@ -69,25 +216,86 @@ class AppGridAdapter(
     }
 
     private fun startDownload(app: App) {
+        // 初始化下载状态
+        downloadingApps[app.packageName] = DownloadState(
+            progress = 0,
+            isDownloading = true,
+            isInstalling = false
+        )
+
+        // 通知全局下载开始
         onDownloadStart(app)
+
+        // 刷新当前项
+        val position = getAppPosition(app.packageName)
+        if (position >= 0) {
+            notifyItemChanged(position)
+        }
 
         val file = File(context.getExternalFilesDir(null), "${app.packageName}.apk")
         if (file.exists()) {
             file.delete()
         }
+
         DownloadManager.download(app.downloadUrl, file.absolutePath, object : DownloadCallback {
             override fun onStart() {
-
+                Log.i("AppGridAdapter", "Download started for ${app.name}")
             }
 
             override fun onProgress(progress: Int) {
+                Log.d("AppGridAdapter", "onProgress called: ${app.name}, progress=$progress%")
+
+                // 更新全局进度
                 onDownloadProgress(progress)
+
+                // 更新下载状态
+                val state = downloadingApps[app.packageName]
+                if (state != null) {
+                    state.progress = progress
+                    Log.d("AppGridAdapter", "Updated state for ${app.packageName}: $state")
+                } else {
+                    Log.e("AppGridAdapter", "State not found for ${app.packageName}!")
+                }
+
+                // 使用 Handler 在主线程更新 UI
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    // 直接更新 ViewHolder（避免闪烁）
+                    val holder = viewHolders[app.packageName]
+                    if (holder != null) {
+                        Log.d("AppGridAdapter", "Directly updating ViewHolder progress for ${app.packageName}")
+                        holder.downloadProgress.progress = progress
+                        holder.progressText.text = "$progress%"
+                        holder.progressContainer.visibility = View.VISIBLE
+                    } else {
+                        // ViewHolder 不存在（可能被回收），使用 payload 局部更新
+                        Log.w("AppGridAdapter", "ViewHolder not found, using payload update")
+                        val pos = getAppPosition(app.packageName)
+                        if (pos >= 0) {
+                            notifyItemChanged(pos, PAYLOAD_PROGRESS)
+                        }
+                    }
+                }
             }
 
             override fun onCompleted(download: Download) {
+                Log.i("AppGridAdapter", "Download completed for ${app.name}")
+
+                // 更新为安装中状态
+                downloadingApps[app.packageName]?.apply {
+                    isDownloading = false
+                    isInstalling = true
+                }
+
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    // 使用 payload 局部更新状态
+                    val pos = getAppPosition(app.packageName)
+                    if (pos >= 0) {
+                        notifyItemChanged(pos, PAYLOAD_STATUS)
+                    }
+                }
 
                 onDownloadComplete()
-                installApk(file)
+                installApk(file, app.packageName)
             }
         })/*val fetchConfiguration: FetchConfiguration = FetchConfiguration.Builder(EmmApp.app)
                 .setDownloadConcurrentLimit(3)
@@ -228,11 +436,22 @@ class AppGridAdapter(
         })*/
     }
 
-    private fun installApk(file: File) {
+    private fun installApk(file: File, packageName: String) {
         // Implement APK installation logic here
         // Note: This requires additional setup for installing APKs on Android 7.0+
-        Log.e("eee", "eeee " + file.absolutePath)
+        Log.i("AppGridAdapter", "Installing APK: ${file.absolutePath}")
 
         AppUtils.installApp(file)
+
+        // 安装完成后清除下载状态（延迟一下，等待安装完成）
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            downloadingApps.remove(packageName)
+            viewHolders.remove(packageName)
+            val pos = getAppPosition(packageName)
+            if (pos >= 0) {
+                // 使用 payload 局部更新状态
+                notifyItemChanged(pos, PAYLOAD_STATUS)
+            }
+        }, 2000) // 2秒后刷新状态
     }
 }
