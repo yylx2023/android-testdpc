@@ -43,6 +43,7 @@ import com.goofish.emm.tutu.TutuUtil;
 import com.goofish.emm.util.AppPref;
 import com.goofish.emm.util.DeviceUtil;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -108,29 +109,39 @@ public class EmmMainActivity extends Activity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i(TAG, "EmmMainActivity onCreate started");
         setContentView(R.layout.activity_emm_main);
 
-
         mPackageManager = getPackageManager();
-
         mAdminComponentName = DeviceAdminReceiver.getComponentName(this);
         mDevicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
 
         // 检查是否是设备所有者
-        if (!mDevicePolicyManager.isDeviceOwnerApp(getPackageName())) {
+        boolean isDeviceOwner = mDevicePolicyManager.isDeviceOwnerApp(getPackageName());
+        Log.i(TAG, "Device owner check: " + isDeviceOwner);
+        if (!isDeviceOwner) {
+            Log.w(TAG, "Not device owner, showing alert dialog and stopping");
             showDeviceOwnerAlertDialog();
             return; // 不继续执行后续代码
         }
 
+        Log.i(TAG, "Granting permissions...");
         grantPermission();
 
         //检查说多多app是否安装
-        if (!AppUtils.isAppInstalled(TutuUtil.TUTU_PKG)) {
+        boolean isTutuInstalled = AppUtils.isAppInstalled(TutuUtil.TUTU_PKG);
+        Log.i(TAG, "Tutu app installed: " + isTutuInstalled);
+        if (!isTutuInstalled) {
+            Log.w(TAG, "Tutu app not installed, showing alert dialog and stopping");
             showTutuAlertDialog();
+            return; // 重要：图图应用未安装时不继续执行
         }
 
         //设备已经激活
-        if (!TextUtils.isEmpty(AppPref.getInstance().getMMKV().decodeString("token"))) {
+        String token = AppPref.getInstance().getMMKV().decodeString("token");
+        Log.i(TAG, "Token check: " + (TextUtils.isEmpty(token) ? "empty" : "exists"));
+        if (!TextUtils.isEmpty(token)) {
+            Log.i(TAG, "Device activated, starting Kiosk mode");
             startKioskMode(new String[]{TutuUtil.TUTU_PKG});
             return;
         }
@@ -191,28 +202,50 @@ public class EmmMainActivity extends Activity {
 
 
     private void startKioskMode(String[] lockTaskArray) {
+        Log.i(TAG, "startKioskMode called with apps: " + Arrays.toString(lockTaskArray));
+
         if (!Util.isDeviceOwner(this)) {
+            Log.e(TAG, "Not device owner, cannot start Kiosk mode");
             Toast.makeText(this, "请先将设备设置为设备管理者", Toast.LENGTH_LONG).show();
             return;
         }
 
-        TutuUtil.grantPermission(mDevicePolicyManager, mAdminComponentName);
         final ComponentName customLauncher = new ComponentName(this, KioskModeActivity.class);
+        Log.i(TAG, "Custom launcher component: " + customLauncher);
 
         // enable custom launcher (it's disabled by default in manifest)
+        Log.i(TAG, "Enabling custom launcher...");
         mPackageManager.setComponentEnabledSetting(
                 customLauncher,
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                 PackageManager.DONT_KILL_APP);
 
         // set custom launcher as default home activity
+        Log.i(TAG, "Setting custom launcher as default home...");
         mDevicePolicyManager.addPersistentPreferredActivity(
                 mAdminComponentName, Util.getHomeIntentFilter(), customLauncher);
+
         Intent launchIntent = Util.getHomeIntent();
         launchIntent.putExtra(KioskModeActivity.LOCKED_APP_PACKAGE_LIST, lockTaskArray);
+        Log.i(TAG, "Starting KioskModeActivity with intent: " + launchIntent);
 
         startActivity(launchIntent);
+        Log.i(TAG, "Finishing EmmMainActivity");
         finish();
+
+        // 在后台线程授予图图应用权限，避免阻塞主线程
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.i(TAG, "Granting Tutu permissions in background thread...");
+                try {
+                    TutuUtil.grantPermission(mDevicePolicyManager, mAdminComponentName);
+                    Log.i(TAG, "Tutu permissions granted successfully");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error granting Tutu permissions: " + e.getMessage(), e);
+                }
+            }
+        }).start();
     }
 
     /**
