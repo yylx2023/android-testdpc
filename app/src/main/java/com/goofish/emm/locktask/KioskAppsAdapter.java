@@ -65,6 +65,8 @@ public class KioskAppsAdapter extends RecyclerView.Adapter<KioskAppsAdapter.AppV
     public void onBindViewHolder(@NonNull AppViewHolder holder, int position) {
         AppInfo appInfo = appList.get(position);
         holder.bind(appInfo);
+
+        Log.d(TAG, "Binding app: " + appInfo.getAppName() + ", icon: " + (appInfo.getAppIcon() != null));
     }
 
     @Override
@@ -93,7 +95,17 @@ public class KioskAppsAdapter extends RecyclerView.Adapter<KioskAppsAdapter.AppV
         }
 
         public void bind(AppInfo appInfo) {
-            appIcon.setImageDrawable(appInfo.getAppIcon());
+            // 设置图标
+            if (appInfo.getAppIcon() != null) {
+                appIcon.setImageDrawable(appInfo.getAppIcon());
+                appIcon.setVisibility(View.VISIBLE);
+                Log.d(TAG, "Icon set for: " + appInfo.getAppName());
+            } else {
+                appIcon.setVisibility(View.GONE);
+                Log.w(TAG, "No icon for: " + appInfo.getAppName());
+            }
+
+            // 设置应用名称
             appName.setText(appInfo.getAppName());
         }
     }

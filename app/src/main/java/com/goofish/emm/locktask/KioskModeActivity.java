@@ -1093,7 +1093,7 @@ public class KioskModeActivity extends Activity {
         float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
 
         // 每个应用项大约需要120dp宽度（包括padding）
-        int spanCount = (int) (dpWidth / 120);
+        int spanCount = (int) (dpWidth / 200);
 
         // 最少2列，最多6列
         return Math.max(2, Math.min(spanCount, 6));

@@ -1,33 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.goofish.emm.locktask.SquareCardView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp"
-        android:gravity="center"
-        android:background="?android:attr/selectableItemBackground"
+        android:layout_margin="8dp"
         android:clickable="true"
         android:focusable="true"
-        android:layout_margin="4dp">
+        android:foreground="?android:attr/selectableItemBackground"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="#FFFFFF">
 
-    <ImageView
-            android:id="@+id/app_icon"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:scaleType="fitCenter"
-            android:background="@drawable/app_icon_background_shadow"
-            android:padding="8dp" />
-
-    <TextView
-            android:id="@+id/app_name"
+    <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textSize="12sp"
-            android:textColor="#333333"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:textAlignment="center" />
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:gravity="center">
 
-</LinearLayout>
+        <!-- 图标 -->
+        <ImageView
+                android:id="@+id/app_icon"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scaleType="fitCenter"
+                android:padding="8dp" />
+
+        <!-- 应用名称 -->
+        <TextView
+                android:id="@+id/app_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textSize="16sp"
+                android:textColor="#212121"
+                android:textStyle="bold"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:lineSpacingExtra="2dp" />
+
+    </LinearLayout>
+
+</com.goofish.emm.locktask.SquareCardView>
