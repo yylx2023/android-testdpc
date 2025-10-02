@@ -16,6 +16,9 @@ interface ApiService {
 
     @POST("/v1/appList")
     fun appList(@Body request: CommonRequest): Call<Resp.Common<AppListResponse>>
+
+    @POST("/v1/deviceInfo")
+    fun reportDeviceInfo(@Body request: DeviceInfoRequest): Call<Resp.Common<DeviceInfoResponse>>
 }
 
 @Keep
@@ -44,4 +47,19 @@ data class VersionCheckResponse(
 @Keep
 data class AppListResponse(
     val apps: MutableList<App>
+)
+
+@Keep
+data class DeviceInfoRequest(
+    val sn: String,
+    val model: String,
+    val androidVersion: String,
+    val androidSdkVersion: Int,
+    val appVersionName: String,
+    val appVersionCode: Int
+)
+
+@Keep
+data class DeviceInfoResponse(
+    val success: Boolean
 )

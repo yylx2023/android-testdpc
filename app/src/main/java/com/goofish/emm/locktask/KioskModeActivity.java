@@ -27,6 +27,8 @@ import com.goofish.emm.EmmApp;
 import com.goofish.emm.EmmDebugActivity;
 import com.goofish.emm.appstore.AppstoreActivity;
 import com.goofish.emm.http.ApiService;
+import com.goofish.emm.http.DeviceInfoRequest;
+import com.goofish.emm.http.DeviceInfoResponse;
 import com.goofish.emm.http.NetCallback;
 import com.goofish.emm.http.NetworkManager;
 import com.goofish.emm.http.Resp;
@@ -34,6 +36,7 @@ import com.goofish.emm.http.RetrofitClient;
 import com.goofish.emm.http.CommonRequest;
 import com.goofish.emm.http.VersionCheckResponse;
 import com.goofish.emm.tutu.TutuUtil;
+import com.goofish.emm.util.DeviceInfoHelper;
 import com.goofish.emm.util.DeviceUtil;
 import com.goofish.emm.util.Dpm;
 import com.lzf.easyfloat.EasyFloat;
@@ -616,6 +619,9 @@ public class KioskModeActivity extends Activity {
         initRecyclerView();
 
         register();
+
+        // 上报设备信息
+        reportDeviceInfo();
     }
 
     private void handleClick() {
@@ -891,6 +897,39 @@ public class KioskModeActivity extends Activity {
 
     private void startApp(String pkg) {
         AppUtils.launchApp(pkg);
+    }
+
+    /**
+     * 上报设备信息到平台
+     * 在 KioskModeActivity 启动时调用
+     */
+    private void reportDeviceInfo() {
+        Log.i(TAG, "Starting device info report");
+
+        ApiService apiService = RetrofitClient.INSTANCE.getApiService();
+
+        // 创建设备信息请求
+        DeviceInfoRequest request = DeviceInfoHelper.createDeviceInfoRequest(this);
+
+        // 打印设备信息摘要
+        Log.i(TAG, "Reporting: " + DeviceInfoHelper.getDeviceInfoSummary(this));
+
+        Call<Resp.Common<DeviceInfoResponse>> call = apiService.reportDeviceInfo(request);
+        NetworkManager.INSTANCE.makeRequest(call, new NetCallback<DeviceInfoResponse>() {
+            @Override
+            public void onSuccess(@NonNull Resp.Common<DeviceInfoResponse> resp, @NonNull byte[] data) {
+                if (Resp.SUCCESS.equals(resp.getCode())) {
+                    Log.i(TAG, "Device info reported successfully");
+                } else {
+                    Log.w(TAG, "Device info report failed: " + resp.getMsg());
+                }
+            }
+
+            @Override
+            public void onNetError(int statusCode, @NonNull String msg) {
+                Log.e(TAG, "Device info report network error: " + statusCode + " - " + msg);
+            }
+        });
     }
 
     private void checkVersion() {
