@@ -94,6 +94,7 @@
             android:name=".PolicyManagementActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustPan">
             <!--            <intent-filter>-->
             <!--                <action android:name="android.intent.action.MAIN" />-->
@@ -163,6 +164,7 @@
             android:name=".AddAccountActivity"
             android:exported="false"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/SudThemeGlifV3.Light" />
 
         <activity
@@ -170,6 +172,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:screenOrientation="portrait"
             android:theme="@style/SudThemeGlifV3.Light">
             <intent-filter>
                 <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
@@ -181,6 +184,7 @@
             android:name=".cosu.EnableCosuActivity"
             android:exported="false"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/SudThemeGlifV3.Light" />
 
         <!--        <activity-->
@@ -201,6 +205,7 @@
             android:name=".provision.GetProvisioningModeActivity"
             android:exported="true"
             android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:screenOrientation="portrait"
             android:theme="@style/DpcLoginTheme">
             <intent-filter>
                 <action android:name="android.app.action.GET_PROVISIONING_MODE" />
@@ -211,6 +216,7 @@
         <activity
             android:name=".provision.ProvisioningSuccessActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
                 <action android:name="android.app.action.PROVISIONING_SUCCESSFUL" />
@@ -222,7 +228,8 @@
             android:name=".WorkPolicyInfoActivity"
             android:exported="true"
             android:label="@string/work_policy_info_name"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />
                 <action android:name="android.settings.SHOW_WORK_POLICY_INFO" />
@@ -232,7 +239,8 @@
         <activity
             android:name="android.app.Activity"
             android:exported="true"
-            android:permission="android.permission.LAUNCH_DEVICE_MANAGER_SETUP">
+            android:permission="android.permission.LAUNCH_DEVICE_MANAGER_SETUP"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.app.action.ROLE_HOLDER_PROVISION_MANAGED_DEVICE_FROM_TRUSTED_SOURCE" />
                 <action android:name="android.app.action.ROLE_HOLDER_PROVISION_MANAGED_PROFILE" />

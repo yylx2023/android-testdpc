@@ -599,7 +599,19 @@ public class KioskModeActivity extends Activity {
         } else {
             // after a reboot there is no need to set the policies again
             SharedPreferences sharedPreferences = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
-            mKioskPackages = new ArrayList<>(sharedPreferences.getStringSet(KIOSK_APPS_KEY, new HashSet<String>()));
+            LinkedHashSet<String> packageSet = new LinkedHashSet<>(
+                    sharedPreferences.getStringSet(KIOSK_APPS_KEY, new HashSet<String>())
+            );
+            Collections.addAll(packageSet, APPS);
+            Collections.addAll(packageSet, DEF_LOCK_TASK);
+
+            // 转换为ArrayList
+            mKioskPackages = new ArrayList<>(packageSet);
+
+            // 确保当前应用在最后，作为后门
+            mKioskPackages.remove(getPackageName());
+            mKioskPackages.add(getPackageName());
+
             setDefaultKioskPolicies(true);
         }
 
