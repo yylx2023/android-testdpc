@@ -491,6 +491,7 @@ public class KioskModeActivity extends Activity {
 
         EasyFloat.with(this)
                 .setLayout(R.layout.item_floating)
+                .setMatchParent(false, false)
                 .setShowPattern(ShowPattern.ALL_TIME)
                 .setDragEnable(true)
                 .setTag("myFloatView")
