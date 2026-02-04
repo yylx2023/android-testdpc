@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.afwsamples.testdpc.R;
 import com.afwsamples.testdpc.common.Util;
+import com.goofish.emm.tutu.TutuUtil;
 
 import java.util.List;
 
@@ -96,7 +97,12 @@ public class KioskAppsAdapter extends RecyclerView.Adapter<KioskAppsAdapter.AppV
 
         public void bind(AppInfo appInfo) {
             // 设置图标
-            if (appInfo.getAppIcon() != null) {
+            // 对 com.doutu.tutupad 应用使用自定义图标
+            if (TutuUtil.TUTU_PKG.equals(appInfo.getPackageName())) {
+                appIcon.setImageResource(R.drawable.zhiyue_shuoduoduo);
+                appIcon.setVisibility(View.VISIBLE);
+                Log.d(TAG, "Custom icon set for: " + appInfo.getAppName());
+            } else if (appInfo.getAppIcon() != null) {
                 appIcon.setImageDrawable(appInfo.getAppIcon());
                 appIcon.setVisibility(View.VISIBLE);
                 Log.d(TAG, "Icon set for: " + appInfo.getAppName());

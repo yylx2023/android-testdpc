@@ -379,7 +379,6 @@
             android:name="com.goofish.emm.appstore.AppstoreActivity"
             android:screenOrientation="portrait"
             android:exported="true" />
-
         <activity
             android:name="com.goofish.emm.About"
             android:label="关于我们"

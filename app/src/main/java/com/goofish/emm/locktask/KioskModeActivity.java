@@ -72,6 +72,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -619,6 +620,11 @@ public class KioskModeActivity extends Activity {
 
         // 隐藏标题栏
         requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        // 设置全屏，隐藏状态栏
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         setContentView(R.layout.activity_empty);
 
