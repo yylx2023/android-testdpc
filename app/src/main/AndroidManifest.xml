@@ -391,6 +391,17 @@
             </intent-filter>
 
         </activity>
+        <activity
+            android:name="com.goofish.emm.IntroductionActivity"
+            android:label="智悦英语介绍"
+            android:screenOrientation="portrait"
+            android:icon="@drawable/zhiyue_introduction"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.goofish.emm.action.ON_DESK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

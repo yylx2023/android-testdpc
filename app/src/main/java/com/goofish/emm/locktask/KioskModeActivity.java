@@ -689,6 +689,9 @@ public class KioskModeActivity extends Activity {
         super.onResume();
         Log.e(TAG, "onResume - KioskModeActivity is now visible");
 
+        // 强制设置竖屏方向，确保从横屏应用返回时布局正确
+        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
         // 不再自动启动应用，让用户可以看到桌面并选择应用
         // 这样 HOME 键就能正确返回到这个桌面界面
     }
