@@ -1,5 +1,6 @@
 package com.goofish.emm;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
@@ -10,8 +11,6 @@ import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
@@ -23,7 +22,7 @@ import java.util.List;
 /**
  * 介绍我们页面 - 使用 ViewPager 展示 iPad01-12 图片
  */
-public class IntroductionActivity extends AppCompatActivity {
+public class IntroductionActivity extends Activity {
 
     private ViewPager viewPager;
     private List<Integer> imageList;
@@ -37,10 +36,10 @@ public class IntroductionActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         // 设置 ActionBar 返回按钮
-        ActionBar actionBar = getSupportActionBar();
+        ActionBar actionBar = getActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setTitle("介绍我们");
+            actionBar.setTitle("智悦英语介绍");
         }
 
         // 初始化图片列表
