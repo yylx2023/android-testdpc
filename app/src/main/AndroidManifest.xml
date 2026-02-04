@@ -384,7 +384,7 @@
             android:name="com.goofish.emm.About"
             android:label="关于我们"
             android:screenOrientation="portrait"
-            android:icon="@drawable/icon"
+            android:icon="@drawable/zhiyue_about"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.goofish.emm.action.ON_DESK" />
