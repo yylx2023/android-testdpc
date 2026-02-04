@@ -6,6 +6,7 @@
         android:background="@drawable/zhiyue_bg">
 
     <androidx.recyclerview.widget.RecyclerView
+            android:layout_marginTop="96dp"
             android:id="@+id/apps_recycler_view"
             android:layout_width="0dp"
             android:layout_height="0dp"

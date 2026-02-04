@@ -71,6 +71,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -615,6 +616,9 @@ public class KioskModeActivity extends Activity {
 
             setDefaultKioskPolicies(true);
         }
+
+        // 隐藏标题栏
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
 
         setContentView(R.layout.activity_empty);
 
