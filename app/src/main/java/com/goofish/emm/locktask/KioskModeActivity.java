@@ -692,6 +692,9 @@ public class KioskModeActivity extends Activity {
         // 强制设置竖屏方向，确保从横屏应用返回时布局正确
         setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
+        // 从横屏应用返回时，重新更新 RecyclerView 布局以确保图标大小正确
+        updateRecyclerViewLayout();
+
         // 不再自动启动应用，让用户可以看到桌面并选择应用
         // 这样 HOME 键就能正确返回到这个桌面界面
     }
@@ -1185,6 +1188,38 @@ public class KioskModeActivity extends Activity {
             }
         } catch (Exception e) {
             Log.e(TAG, "Error checking default HOME Activity: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 从横屏应用返回时，重新更新 RecyclerView 布局
+     * 解决从横屏切换回竖屏时图标大小不正确的问题
+     */
+    private void updateRecyclerViewLayout() {
+        if (mAppsRecyclerView != null) {
+            // 使用 post 确保在布局完成后执行
+            mAppsRecyclerView.post(new Runnable() {
+                @Override
+                public void run() {
+                    // 重新计算列数并更新布局管理器
+                    int spanCount = calculateSpanCount();
+                    RecyclerView.LayoutManager layoutManager = mAppsRecyclerView.getLayoutManager();
+                    if (layoutManager instanceof GridLayoutManager) {
+                        GridLayoutManager gridLayoutManager = (GridLayoutManager) layoutManager;
+                        if (gridLayoutManager.getSpanCount() != spanCount) {
+                            gridLayoutManager.setSpanCount(spanCount);
+                            Log.i(TAG, "Updated GridLayoutManager span count to: " + spanCount);
+                        }
+                    }
+                    
+                    // 强制重新布局和重绘所有子项
+                    mAppsRecyclerView.requestLayout();
+                    if (mAppsAdapter != null) {
+                        mAppsAdapter.notifyDataSetChanged();
+                    }
+                    Log.i(TAG, "RecyclerView layout updated after orientation change");
+                }
+            });
         }
     }
 }
