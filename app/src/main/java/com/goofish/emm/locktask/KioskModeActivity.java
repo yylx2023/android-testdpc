@@ -133,7 +133,7 @@ public class KioskModeActivity extends Activity {
     public static final String[] APPS = {TutuUtil.TUTU_PKG, "com.tencent.wemeet.app"};
 
     //无需在桌面显示的
-    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
+    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller", "com.android.settings", "com.android.systemui", "com.android.bluetooth"};
 
     // 是否在 Lock Task 模式下启用 HOME 键
     private static final boolean ENABLE_HOME_KEY_IN_LOCK_TASK = true;
@@ -996,7 +996,7 @@ public class KioskModeActivity extends Activity {
         mAppsRecyclerView = findViewById(R.id.apps_recycler_view);
 
         // 设置网格布局管理器，根据屏幕宽度动态计算列数
-        int spanCount = calculateSpanCount();
+        int spanCount = 3;
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, spanCount);
         mAppsRecyclerView.setLayoutManager(gridLayoutManager);
 
@@ -1164,7 +1164,7 @@ public class KioskModeActivity extends Activity {
         int spanCount = (int) (dpWidth / 200);
 
         // 最少2列，最多6列
-        return Math.max(2, Math.min(spanCount, 6));
+        return Math.max(3, Math.min(spanCount, 6));
     }
 
     /**
@@ -1202,7 +1202,7 @@ public class KioskModeActivity extends Activity {
                 @Override
                 public void run() {
                     // 重新计算列数并更新布局管理器
-                    int spanCount = calculateSpanCount();
+                    int spanCount = 3;
                     RecyclerView.LayoutManager layoutManager = mAppsRecyclerView.getLayoutManager();
                     if (layoutManager instanceof GridLayoutManager) {
                         GridLayoutManager gridLayoutManager = (GridLayoutManager) layoutManager;
