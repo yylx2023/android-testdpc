@@ -83,6 +83,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -90,6 +91,7 @@ import java.util.List;
 
 import static android.os.UserManager.DISALLOW_ADD_USER;
 import static android.os.UserManager.DISALLOW_FACTORY_RESET;
+import static android.os.UserManager.DISALLOW_INSTALL_APPS;
 import static android.os.UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA;
 import static android.os.UserManager.DISALLOW_SAFE_BOOT;
 import static android.os.UserManager.DISALLOW_UNINSTALL_APPS;
@@ -126,28 +128,30 @@ public class KioskModeActivity extends Activity {
 
     public static final String LOCKED_APP_PACKAGE_LIST = "com.afwsamples.testdpc.policy.locktask.LOCKED_APP_PACKAGE_LIST";
 
-    //    public static final String[] DEF_LOCK_TASK = {"com.android.permissioncontroller"};
-//    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller"};
+    // 在桌面显示的 app（引用 KioskConfig 配置）
+    public static final String[] APPS = KioskConfig.DESKTOP_APPS;
 
-    //在桌面显示的app
-    public static final String[] APPS = {TutuUtil.TUTU_PKG, "com.tencent.wemeet.app"};
-
-    //无需在桌面显示的
-    public static final String[] DEF_LOCK_TASK = {"com.android.packageinstaller", "com.android.settings", "com.android.systemui", "com.android.bluetooth"};
-
-    // 是否在 Lock Task 模式下启用 HOME 键
-    private static final boolean ENABLE_HOME_KEY_IN_LOCK_TASK = true;
-
-    // 是否在 Lock Task 模式下启用通知功能
-    private static final boolean ENABLE_NOTIFICATIONS_IN_LOCK_TASK = false;
+    // 无需在桌面显示但需加入 LockTask 白名单的系统包
+    public static final String[] DEF_LOCK_TASK = KioskConfig.LOCK_TASK_SYSTEM_PACKAGES;
 
     // 内部组件的 action
     private static final String INTERNAL_COMPONENT_ACTION = "com.goofish.emm.action.ON_DESK";
-    private static final String[] KIOSK_USER_RESTRICTIONS = {DISALLOW_SAFE_BOOT, DISALLOW_FACTORY_RESET, DISALLOW_ADD_USER, DISALLOW_MOUNT_PHYSICAL_MEDIA,
-//            DISALLOW_ADJUST_VOLUME,
-            DISALLOW_UNINSTALL_APPS,
-//            DISALLOW_DEBUGGING_FEATURES
-    };
+
+    /**
+     * 构建用户限制列表（根据 KioskConfig 中的开关动态生成）
+     */
+    private static String[] buildUserRestrictions() {
+        List<String> restrictions = new ArrayList<>();
+        if (KioskConfig.DISALLOW_SAFE_BOOT) restrictions.add(DISALLOW_SAFE_BOOT);
+        if (KioskConfig.DISALLOW_FACTORY_RESET) restrictions.add(DISALLOW_FACTORY_RESET);
+        if (KioskConfig.DISALLOW_ADD_USER) restrictions.add(DISALLOW_ADD_USER);
+        if (KioskConfig.DISALLOW_MOUNT_PHYSICAL_MEDIA) restrictions.add(DISALLOW_MOUNT_PHYSICAL_MEDIA);
+        if (KioskConfig.DISALLOW_UNINSTALL) restrictions.add(DISALLOW_UNINSTALL_APPS);
+        if (KioskConfig.DISALLOW_INSTALL) restrictions.add(DISALLOW_INSTALL_APPS);
+        return restrictions.toArray(new String[0]);
+    }
+
+    private static final String[] KIOSK_USER_RESTRICTIONS = buildUserRestrictions();
 
     private ComponentName mAdminComponentName;
     private ArrayList<String> mKioskPackages;
@@ -491,6 +495,8 @@ public class KioskModeActivity extends Activity {
             }
         }).setShowPattern(ShowPattern.ALL_TIME).show();*/
 
+        // 悬浮球：受 KioskConfig 开关控制
+        if (KioskConfig.FLOATING_BUTTON_ENABLED)
         EasyFloat.with(this)
                 .setLayout(R.layout.item_floating)
                 .setMatchParent(false, false)
@@ -721,41 +727,41 @@ public class KioskModeActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        Log.d(TAG, "onStart called");
+        Log.d(TAG, "onStart called, LockTask enabled: " + KioskConfig.LOCK_TASK_ENABLED);
 
-        // start lock task mode if it's not already active
-        ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        // ActivityManager.getLockTaskModeState api is not available in pre-M.
-        if (Util.SDK_INT < VERSION_CODES.M) {
-            boolean isInLockTask = am.isInLockTaskMode();
-            Log.d(TAG, "Pre-M device, isInLockTaskMode: " + isInLockTask);
-            if (!isInLockTask) {
-                Log.i(TAG, "Starting Lock Task mode (Pre-M)");
-                startLockTask();
+        if (KioskConfig.LOCK_TASK_ENABLED) {
+            // 仅在开关打开时才进入 LockTask 模式
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (Util.SDK_INT < VERSION_CODES.M) {
+                if (!am.isInLockTaskMode()) {
+                    Log.i(TAG, "Starting Lock Task mode (Pre-M)");
+                    startLockTask();
+                }
+            } else {
+                if (am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_NONE) {
+                    Log.i(TAG, "Starting Lock Task mode (M+)");
+                    startLockTask();
+                }
+            }
+
+            // 检查当前的 Lock Task Features
+            if (Util.SDK_INT >= VERSION_CODES.P) {
+                try {
+                    int currentFeatures = mDevicePolicyManager.getLockTaskFeatures(mAdminComponentName);
+                    Log.i(TAG, "Current Lock Task Features: " + currentFeatures);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to get Lock Task Features: " + e.getMessage());
+                }
             }
         } else {
-            int lockTaskState = am.getLockTaskModeState();
-            Log.d(TAG, "Lock Task Mode State: " + lockTaskState + " (NONE=" + ActivityManager.LOCK_TASK_MODE_NONE + ")");
-            if (lockTaskState == ActivityManager.LOCK_TASK_MODE_NONE) {
-                Log.i(TAG, "Starting Lock Task mode (M+)");
-                startLockTask();
-            }
-        }
-
-        // 检查当前的 Lock Task Features
-        if (Util.SDK_INT >= VERSION_CODES.P) {
-            try {
-                int currentFeatures = mDevicePolicyManager.getLockTaskFeatures(mAdminComponentName);
-                Log.i(TAG, "Current Lock Task Features: " + currentFeatures);
-                Log.i(TAG, "HOME feature enabled: " + ((currentFeatures & LOCK_TASK_FEATURE_HOME) != 0));
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to get Lock Task Features: " + e.getMessage());
-            }
+            Log.i(TAG, "LockTask mode is DISABLED by KioskConfig, skipping startLockTask()");
         }
     }
 
     public void onBackdoorClicked() {
-        stopLockTask();
+        if (KioskConfig.LOCK_TASK_ENABLED) {
+            stopLockTask();
+        }
         setDefaultKioskPolicies(false);
         mDevicePolicyManager.clearPackagePersistentPreferredActivities(mAdminComponentName, getPackageName());
         mPackageManager.setComponentEnabledSetting(new ComponentName(getPackageName(), getClass().getName()), PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
@@ -772,29 +778,43 @@ public class KioskModeActivity extends Activity {
     }
 
     private void setDefaultKioskPolicies(boolean active) {
-        // restore or save previous configuration
         if (active) {
             saveCurrentConfiguration();
-//            setUserRestriction(DISALLOW_SAFE_BOOT, active);
-//            setUserRestriction(DISALLOW_FACTORY_RESET, active);
-//            setUserRestriction(DISALLOW_ADD_USER, active);
-//            setUserRestriction(DISALLOW_MOUNT_PHYSICAL_MEDIA, active);
-//            setUserRestriction(DISALLOW_ADJUST_VOLUME, active);
-            for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
-                setUserRestriction(userRestriction, active);
-            }
 
-            // 设置 Lock Task Features 以启用 HOME 键
-            setLockTaskFeatures(active);
+            // 1. 用户限制 —— 始终生效（禁止安装/卸载/恢复出厂等）
+            for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
+                setUserRestriction(userRestriction, true);
+            }
+            Log.i(TAG, "User restrictions applied: " + Arrays.toString(KIOSK_USER_RESTRICTIONS));
+
+            // 2. Suspend 黑名单应用 —— 始终生效
+            suspendBlacklistApps(true);
+
+            // 3. LockTask 相关 —— 仅在开关打开时设置
+            if (KioskConfig.LOCK_TASK_ENABLED) {
+                setLockTaskFeatures(true);
+                mDevicePolicyManager.setLockTaskPackages(
+                        mAdminComponentName,
+                        mKioskPackages.toArray(new String[]{})
+                );
+                Log.i(TAG, "LockTask packages set: " + mKioskPackages);
+            } else {
+                Log.i(TAG, "LockTask DISABLED, skipping setLockTaskPackages/setLockTaskFeatures");
+            }
         } else {
             restorePreviousConfiguration();
 
-            // 清除 Lock Task Features
-            setLockTaskFeatures(active);
+            // 清除 suspend
+            suspendBlacklistApps(false);
+
+            // 清除 LockTask（仅在启用过 LockTask 时才需要清除）
+            if (KioskConfig.LOCK_TASK_ENABLED) {
+                setLockTaskFeatures(false);
+                mDevicePolicyManager.setLockTaskPackages(mAdminComponentName, new String[]{});
+            }
         }
 
-        // set lock task packages
-        mDevicePolicyManager.setLockTaskPackages(mAdminComponentName, active ? mKioskPackages.toArray(new String[]{}) : new String[]{});
+        // 保存 kiosk 包列表
         SharedPreferences sharedPreferences = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         if (active) {
@@ -803,6 +823,27 @@ public class KioskModeActivity extends Activity {
             editor.remove(KIOSK_APPS_KEY);
         }
         editor.commit();
+    }
+
+    /**
+     * 冻结/解冻黑名单应用
+     */
+    private void suspendBlacklistApps(boolean suspend) {
+        if (!KioskConfig.SUSPEND_BLACKLIST_ENABLED || KioskConfig.BLACKLIST_APPS.length == 0) {
+            Log.d(TAG, "Suspend blacklist: disabled or empty list");
+            return;
+        }
+        try {
+            String[] failed = mDevicePolicyManager.setPackagesSuspended(
+                    mAdminComponentName, KioskConfig.BLACKLIST_APPS, suspend);
+            if (failed.length == 0) {
+                Log.i(TAG, "All blacklist apps " + (suspend ? "suspended" : "unsuspended") + " successfully");
+            } else {
+                Log.w(TAG, "Failed to " + (suspend ? "suspend" : "unsuspend") + " apps: " + Arrays.toString(failed));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error suspending blacklist apps", e);
+        }
     }
 
     @TargetApi(VERSION_CODES.N)
@@ -832,41 +873,29 @@ public class KioskModeActivity extends Activity {
 
     /**
      * 设置 Lock Task Features 以控制在 Lock Task 模式下可用的功能
+     * 受 KioskConfig.LOCK_TASK_ENABLED 控制
      * @param enable 是否启用功能
      */
     @TargetApi(VERSION_CODES.P)
     private void setLockTaskFeatures(boolean enable) {
-        Log.d(TAG, "setLockTaskFeatures called with enable=" + enable + ", ENABLE_HOME_KEY_IN_LOCK_TASK=" + ENABLE_HOME_KEY_IN_LOCK_TASK);
-        Log.d(TAG, "Current SDK_INT=" + Util.SDK_INT + ", VERSION_CODES.P=" + VERSION_CODES.P);
-
-        if (Util.SDK_INT >= VERSION_CODES.P) {
-            try {
-                if (enable && ENABLE_HOME_KEY_IN_LOCK_TASK) {
-                    // 构建功能标志：启用 HOME 键，可选启用通知功能，禁用多任务键（OVERVIEW）
-                    int features = LOCK_TASK_FEATURE_HOME;
-                    if (ENABLE_NOTIFICATIONS_IN_LOCK_TASK) {
-                        features |= LOCK_TASK_FEATURE_NOTIFICATIONS;
-                    }
-
-                    mDevicePolicyManager.setLockTaskFeatures(mAdminComponentName, features);
-                    Log.i(TAG, "Lock Task Features enabled: HOME(" + LOCK_TASK_FEATURE_HOME + ")");
-                    Log.i(TAG, "NOTIFICATIONS: " + (ENABLE_NOTIFICATIONS_IN_LOCK_TASK ? "ENABLED" : "DISABLED"));
-                    Log.i(TAG, "OVERVIEW (Recent Tasks): DISABLED");
-                    Log.i(TAG, "Total features value: " + features);
-
-                    // 验证设置是否成功
-                    int currentFeatures = mDevicePolicyManager.getLockTaskFeatures(mAdminComponentName);
-                    Log.i(TAG, "Verified current Lock Task Features: " + currentFeatures);
-                } else {
-                    // 禁用所有功能（默认行为）
-                    mDevicePolicyManager.setLockTaskFeatures(mAdminComponentName, 0);
-                    Log.i(TAG, "Lock Task Features disabled");
+        if (Util.SDK_INT < VERSION_CODES.P) {
+            Log.w(TAG, "Lock Task Features require API 28+, current: " + Util.SDK_INT);
+            return;
+        }
+        try {
+            if (enable && KioskConfig.LOCK_TASK_ENABLE_HOME) {
+                int features = LOCK_TASK_FEATURE_HOME;
+                if (KioskConfig.LOCK_TASK_ENABLE_NOTIFICATIONS) {
+                    features |= LOCK_TASK_FEATURE_NOTIFICATIONS;
                 }
-            } catch (SecurityException e) {
-                Log.e(TAG, "Failed to set Lock Task Features: " + e.getMessage());
+                mDevicePolicyManager.setLockTaskFeatures(mAdminComponentName, features);
+                Log.i(TAG, "Lock Task Features set: " + features);
+            } else {
+                mDevicePolicyManager.setLockTaskFeatures(mAdminComponentName, 0);
+                Log.i(TAG, "Lock Task Features cleared");
             }
-        } else {
-            Log.w(TAG, "Lock Task Features require API level 28 (Android P) or higher, current SDK: " + Util.SDK_INT);
+        } catch (SecurityException e) {
+            Log.e(TAG, "Failed to set Lock Task Features: " + e.getMessage());
         }
     }
 
