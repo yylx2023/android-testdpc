@@ -11,18 +11,13 @@ import android.widget.LinearLayout
 import android.widget.TableLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.afwsamples.testdpc.R
-import com.azhon.appupdate.manager.DownloadManager
 import com.blankj.utilcode.util.AppUtils
 import com.blankj.utilcode.util.ToastUtils
-import com.goofish.emm.http.CommonRequest
-import com.goofish.emm.http.NetCallback
-import com.goofish.emm.http.NetworkManager.makeRequest
-import com.goofish.emm.http.Resp
-import com.goofish.emm.http.Resp.Common
-import com.goofish.emm.http.RetrofitClient.apiService
-import com.goofish.emm.http.VersionCheckResponse
 import com.goofish.emm.tutu.TutuUtil
+import com.goofish.emm.update.SelfUpdateHelper
 import com.goofish.emm.util.DeviceUtil
+
+
 import com.kongzue.dialogx.dialogs.InputDialog
 import mehdi.sakout.aboutpage.AboutPage
 import mehdi.sakout.aboutpage.Element
@@ -105,35 +100,11 @@ class About : Activity() {
 
 
     private fun checkVersion() {
-        val apiService = apiService
-
-        val request = CommonRequest(
-            DeviceUtil.getDeviceImei(this@About), AppUtils.getAppVersionCode()
-        )
-        val call = apiService.versionCheck(request)
-        makeRequest<VersionCheckResponse>(call, object : NetCallback<VersionCheckResponse> {
-            override fun onSuccess(resp: Common<VersionCheckResponse>, data: ByteArray) {
-                if (Resp.SUCCESS == resp.code) {
-                    val d = resp.data
-                    val manager: DownloadManager = DownloadManager.Builder(this@About).apkUrl(
-                        d!!.apkUrl
-                    ).apkName("appupdate.apk").smallIcon(R.drawable.icon)
-                        .forcedUpgrade(true) //设置了此参数，那么内部会自动判断是否需要显示更新对话框，否则需要自己判断是否需要更新
-                        .apkVersionCode(d!!.versionCode) //同时下面三个参数也必须要设置
-                        .apkVersionName(d!!.versionName).apkSize(d!!.size)
-                        .apkDescription(d!!.upgradeMsg) //省略一些非必须参数...
-                        .build()
-                    manager.download()
-                } else {
-                    ToastUtils.showShort("当前已经是最新版本~")
-                }
-            }
-
-            override fun onNetError(statusCode: Int, msg: String) {
-                ToastUtils.showShort("网络异常请稍后重试~${statusCode}")
-            }
-        }!!)
+        SelfUpdateHelper.checkVersionAndUpdate(this)
     }
+
+
+
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
