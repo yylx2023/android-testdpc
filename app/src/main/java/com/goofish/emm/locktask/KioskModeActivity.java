@@ -19,7 +19,9 @@ package com.goofish.emm.locktask;
 import com.afwsamples.testdpc.DeviceAdminReceiver;
 import com.afwsamples.testdpc.PolicyManagementActivity;
 import com.afwsamples.testdpc.R;
+import com.afwsamples.testdpc.common.PackageInstallationUtils;
 import com.afwsamples.testdpc.common.Util;
+import com.azhon.appupdate.listener.OnDownloadListener;
 import com.azhon.appupdate.manager.DownloadManager;
 import com.blankj.utilcode.util.AppUtils;
 import com.goofish.emm.About;
@@ -82,6 +84,9 @@ import android.widget.Toast;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -91,7 +96,7 @@ import java.util.List;
 
 import static android.os.UserManager.DISALLOW_ADD_USER;
 import static android.os.UserManager.DISALLOW_FACTORY_RESET;
-import static android.os.UserManager.DISALLOW_INSTALL_APPS;
+import static android.os.UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES;
 import static android.os.UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA;
 import static android.os.UserManager.DISALLOW_SAFE_BOOT;
 import static android.os.UserManager.DISALLOW_UNINSTALL_APPS;
@@ -147,7 +152,7 @@ public class KioskModeActivity extends Activity {
         if (KioskConfig.DISALLOW_ADD_USER) restrictions.add(DISALLOW_ADD_USER);
         if (KioskConfig.DISALLOW_MOUNT_PHYSICAL_MEDIA) restrictions.add(DISALLOW_MOUNT_PHYSICAL_MEDIA);
         if (KioskConfig.DISALLOW_UNINSTALL) restrictions.add(DISALLOW_UNINSTALL_APPS);
-        if (KioskConfig.DISALLOW_INSTALL) restrictions.add(DISALLOW_INSTALL_APPS);
+        if (KioskConfig.DISALLOW_INSTALL_UNKNOWN_SOURCES) restrictions.add(DISALLOW_INSTALL_UNKNOWN_SOURCES);
         return restrictions.toArray(new String[0]);
     }
 
@@ -978,12 +983,43 @@ public class KioskModeActivity extends Activity {
             public void onSuccess(@NonNull Resp.Common<VersionCheckResponse> resp, @NonNull byte[] data) {
                 if (Resp.SUCCESS.equals(resp.getCode())) {
                     VersionCheckResponse d = resp.getData();
-                    DownloadManager manager = new DownloadManager.Builder(KioskModeActivity.this).apkUrl(d.getApkUrl()).apkName("appupdate.apk").smallIcon(R.drawable.ic_launcher).forcedUpgrade(true)
-                            //设置了此参数，那么内部会自动判断是否需要显示更新对话框，否则需要自己判断是否需要更新
+                    DownloadManager manager = new DownloadManager.Builder(KioskModeActivity.this)
+                            .apkUrl(d.getApkUrl())
+                            .apkName("appupdate.apk")
+                            .smallIcon(R.drawable.ic_launcher)
+                            .forcedUpgrade(true)
                             .apkVersionCode(d.getVersionCode())
-                            //同时下面三个参数也必须要设置
-                            .apkVersionName(d.getVersionName()).apkSize(d.getSize()).apkDescription(d.getUpgradeMsg())
-                            //省略一些非必须参数...
+                            .apkVersionName(d.getVersionName())
+                            .apkSize(d.getSize())
+                            .apkDescription(d.getUpgradeMsg())
+                            // 禁止库自动跳转系统安装页面，改用 DPC 静默安装
+                            .jumpInstallPage(false)
+                            .onDownloadListener(new OnDownloadListener() {
+                                @Override
+                                public void start() {
+                                    Log.i(TAG, "Self-update download started");
+                                }
+
+                                @Override
+                                public void downloading(int max, int progress) {
+                                }
+
+                                @Override
+                                public void done(@NonNull File apk) {
+                                    Log.i(TAG, "Self-update download done: " + apk.getAbsolutePath());
+                                    silentInstallApk(apk);
+                                }
+
+                                @Override
+                                public void cancel() {
+                                    Log.w(TAG, "Self-update download cancelled");
+                                }
+
+                                @Override
+                                public void error(@NonNull Throwable e) {
+                                    Log.e(TAG, "Self-update download error", e);
+                                }
+                            })
                             .build();
                     manager.download();
                 }
@@ -994,6 +1030,21 @@ public class KioskModeActivity extends Activity {
 
             }
         });
+    }
+
+    /**
+     * 通过 PackageInstaller Session 静默安装 APK（Device Owner 特权）
+     * 不受 DISALLOW_INSTALL_UNKNOWN_SOURCES 限制
+     */
+    private void silentInstallApk(File apk) {
+        try {
+            FileInputStream fis = new FileInputStream(apk);
+            boolean success = PackageInstallationUtils.installPackage(
+                    this, fis, getPackageName());
+            Log.i(TAG, "Silent install initiated, success: " + success);
+        } catch (IOException e) {
+            Log.e(TAG, "Silent install failed", e);
+        }
     }
 
     /**

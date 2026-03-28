@@ -36,8 +36,13 @@ public final class KioskConfig {
 
     // ======================== 用户限制 ========================
 
-    /** 是否禁止安装应用 */
-    public static final boolean DISALLOW_INSTALL = true;
+    /**
+     * 是否禁止从未知来源安装应用
+     * 使用 DISALLOW_INSTALL_UNKNOWN_SOURCES 而非 DISALLOW_INSTALL_APPS，
+     * 这样 DPC 自身通过 PackageInstaller 的静默安装（自升级）不受影响，
+     * 但用户无法手动安装 APK
+     */
+    public static final boolean DISALLOW_INSTALL_UNKNOWN_SOURCES = true;
 
     /** 是否禁止卸载应用 */
     public static final boolean DISALLOW_UNINSTALL = true;
@@ -83,7 +88,20 @@ public final class KioskConfig {
             "com.microsoft.office.officehub",
             "com.microsoft.office.onenote",
             "com.android.fmradio",
-            "cn.wps.moffice_eng"
+            "cn.wps.moffice_eng",
+            "com.android.email",
+            "com.android.calculator2",
+            "com.factory.mmigroup",
+            "com.tblenovo.soundrecorder",
+            "com.android.calendar",
+            "com.android.deskclock",
+            "com.lenovo.styluspen",
+            "com.android.contacts",
+            "com.android.gallery3d",
+            "com.google.android.apps.nbu.files",
+            "com.mediatek.camera",
+            "com.android.music",
+            "com.dolby.daxappui",
     };
 
     // ======================== 桌面应用 ========================
