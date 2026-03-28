@@ -3,7 +3,10 @@ package com.goofish.emm.update;
 import static android.os.UserManager.DISALLOW_INSTALL_APPS;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.admin.DevicePolicyManager;
+
+
 import android.content.ComponentName;
 import android.util.Log;
 import android.widget.Toast;
@@ -41,6 +44,14 @@ public final class SelfUpdateHelper {
     private SelfUpdateHelper() {}
 
     public static void checkVersionAndUpdate(@NonNull Activity activity) {
+        checkVersionInternal(activity, false);
+    }
+
+    public static void checkVersionAndConfirmUpdate(@NonNull Activity activity) {
+        checkVersionInternal(activity, true);
+    }
+
+    private static void checkVersionInternal(@NonNull Activity activity, boolean showConfirmDialog) {
         ApiService apiService = RetrofitClient.INSTANCE.getApiService();
         CommonRequest request = new CommonRequest(DeviceUtil.getDeviceImei(activity), AppUtils.getAppVersionCode());
         retrofit2.Call<Resp.Common<VersionCheckResponse>> call = apiService.versionCheck(request);
@@ -57,8 +68,21 @@ public final class SelfUpdateHelper {
                     toast(activity, "更新地址无效");
                     return;
                 }
-                Log.i(TAG, "Start self-update download, version=" + d.getVersionName() + "(" + d.getVersionCode() + "), url=" + d.getApkUrl());
-                downloadAndInstallApk(activity, d.getApkUrl());
+                Runnable startUpdate = () -> {
+                    Log.i(TAG, "Start self-update download, version=" + d.getVersionName() + "(" + d.getVersionCode() + "), url=" + d.getApkUrl());
+                    downloadAndInstallApk(activity, d.getApkUrl());
+                };
+                if (showConfirmDialog) {
+                    activity.runOnUiThread(() -> new AlertDialog.Builder(activity)
+                            .setTitle("发现新版本")
+                            .setMessage("版本: " + d.getVersionName() + "\n大小: " + d.getSize() + "\n\n" + d.getUpgradeMsg())
+                            .setCancelable(true)
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("立即更新", (dialog, which) -> startUpdate.run())
+                            .show());
+                } else {
+                    startUpdate.run();
+                }
             }
 
             @Override
@@ -66,8 +90,12 @@ public final class SelfUpdateHelper {
                 Log.e(TAG, "Version check failed, code=" + statusCode + ", msg=" + msg);
                 toast(activity, "网络异常请稍后重试~" + statusCode);
             }
+
+
         });
     }
+
+
 
     private static void downloadAndInstallApk(@NonNull Activity activity, @NonNull String apkUrl) {
         OkHttpClient client = new OkHttpClient.Builder().build();

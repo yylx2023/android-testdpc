@@ -100,8 +100,10 @@ class About : Activity() {
 
 
     private fun checkVersion() {
-        SelfUpdateHelper.checkVersionAndUpdate(this)
+        SelfUpdateHelper.checkVersionAndConfirmUpdate(this)
     }
+
+
 
 
 
