@@ -37,12 +37,10 @@ public final class KioskConfig {
     // ======================== 用户限制 ========================
 
     /**
-     * 是否禁止从未知来源安装应用
-     * 使用 DISALLOW_INSTALL_UNKNOWN_SOURCES 而非 DISALLOW_INSTALL_APPS，
-     * 这样 DPC 自身通过 PackageInstaller 的静默安装（自升级）不受影响，
-     * 但用户无法手动安装 APK
+     * 是否禁止安装应用
+     * 自升级时会临时解除此限制，安装完成后自动恢复
      */
-    public static final boolean DISALLOW_INSTALL_UNKNOWN_SOURCES = true;
+    public static final boolean DISALLOW_INSTALL = true;
 
     /** 是否禁止卸载应用 */
     public static final boolean DISALLOW_UNINSTALL = true;

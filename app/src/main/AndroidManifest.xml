@@ -287,6 +287,14 @@
             </intent-filter>
         </receiver>
 
+
+        <receiver
+            android:name="com.goofish.emm.locktask.SelfUpdateInstallReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.afwsamples.testdpc.INSTALL_COMPLETE" />
+            </intent-filter>
+        </receiver>
         <receiver
             android:name=".policy.resetpassword.ResetPasswordService$LockedBootCompletedReceiver"
             android:directBootAware="true"

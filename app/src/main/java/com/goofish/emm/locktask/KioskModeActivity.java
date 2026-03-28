@@ -96,7 +96,7 @@ import java.util.List;
 
 import static android.os.UserManager.DISALLOW_ADD_USER;
 import static android.os.UserManager.DISALLOW_FACTORY_RESET;
-import static android.os.UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES;
+import static android.os.UserManager.DISALLOW_INSTALL_APPS;
 import static android.os.UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA;
 import static android.os.UserManager.DISALLOW_SAFE_BOOT;
 import static android.os.UserManager.DISALLOW_UNINSTALL_APPS;
@@ -152,7 +152,7 @@ public class KioskModeActivity extends Activity {
         if (KioskConfig.DISALLOW_ADD_USER) restrictions.add(DISALLOW_ADD_USER);
         if (KioskConfig.DISALLOW_MOUNT_PHYSICAL_MEDIA) restrictions.add(DISALLOW_MOUNT_PHYSICAL_MEDIA);
         if (KioskConfig.DISALLOW_UNINSTALL) restrictions.add(DISALLOW_UNINSTALL_APPS);
-        if (KioskConfig.DISALLOW_INSTALL_UNKNOWN_SOURCES) restrictions.add(DISALLOW_INSTALL_UNKNOWN_SOURCES);
+        if (KioskConfig.DISALLOW_INSTALL) restrictions.add(DISALLOW_INSTALL_APPS);
         return restrictions.toArray(new String[0]);
     }
 
@@ -1033,19 +1033,32 @@ public class KioskModeActivity extends Activity {
     }
 
     /**
-     * 通过 PackageInstaller Session 静默安装 APK（Device Owner 特权）
-     * 不受 DISALLOW_INSTALL_UNKNOWN_SOURCES 限制
+     * 通过 PackageInstaller Session 静默安装 APK（Device Owner 特权）。
+     * 安装前临时解除 DISALLOW_INSTALL_APPS，安装完成后由 SelfUpdateInstallReceiver 恢复。
      */
     private void silentInstallApk(File apk) {
         try {
+            if (KioskConfig.DISALLOW_INSTALL) {
+                mDevicePolicyManager.clearUserRestriction(mAdminComponentName, DISALLOW_INSTALL_APPS);
+                Log.i(TAG, "Temporarily cleared DISALLOW_INSTALL_APPS for self-update");
+            }
             FileInputStream fis = new FileInputStream(apk);
-            boolean success = PackageInstallationUtils.installPackage(
-                    this, fis, getPackageName());
-            Log.i(TAG, "Silent install initiated, success: " + success);
+            boolean success = PackageInstallationUtils.installPackage(this, fis, getPackageName());
+            Log.i(TAG, "Silent install commit sent, success=" + success);
         } catch (IOException e) {
-            Log.e(TAG, "Silent install failed", e);
+            Log.e(TAG, "Silent install failed before commit", e);
+            if (KioskConfig.DISALLOW_INSTALL) {
+                try {
+                    mDevicePolicyManager.addUserRestriction(mAdminComponentName, DISALLOW_INSTALL_APPS);
+                    Log.i(TAG, "Restored DISALLOW_INSTALL_APPS after pre-commit failure");
+                } catch (Exception restoreError) {
+                    Log.e(TAG, "Failed to restore DISALLOW_INSTALL_APPS after pre-commit failure", restoreError);
+                }
+            }
         }
     }
+
+
 
     /**
      * 初始化RecyclerView
@@ -1269,7 +1282,7 @@ public class KioskModeActivity extends Activity {
                             Log.i(TAG, "Updated GridLayoutManager span count to: " + spanCount);
                         }
                     }
-                    
+
                     // 强制重新布局和重绘所有子项
                     mAppsRecyclerView.requestLayout();
                     if (mAppsAdapter != null) {
