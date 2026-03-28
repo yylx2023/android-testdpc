@@ -9,9 +9,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInstaller;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.afwsamples.testdpc.DeviceAdminReceiver;
 import com.afwsamples.testdpc.common.PackageInstallationUtils;
+import com.goofish.emm.update.SelfUpdateHelper;
+
+
 
 /**
  * 处理自升级安装完成回调。
@@ -36,19 +40,25 @@ public class SelfUpdateInstallReceiver extends BroadcastReceiver {
                 + ", package=" + packageName + ", message=" + message);
 
         restoreInstallRestriction(context);
+        SelfUpdateHelper.onInstallFinished(status == PackageInstaller.STATUS_SUCCESS);
 
         switch (status) {
             case PackageInstaller.STATUS_SUCCESS:
                 Log.i(TAG, "Self-update install success");
+                Toast.makeText(context, "更新安装成功", Toast.LENGTH_SHORT).show();
                 break;
             case PackageInstaller.STATUS_PENDING_USER_ACTION:
                 Log.w(TAG, "Self-update install requires user action: "
                         + intent.getParcelableExtra(Intent.EXTRA_INTENT));
+                Toast.makeText(context, "安装需要用户确认", Toast.LENGTH_SHORT).show();
                 break;
             default:
                 Log.e(TAG, "Self-update install failed, status=" + status + ", msg=" + message);
+                Toast.makeText(context, "更新安装失败: " + (message == null ? status : message), Toast.LENGTH_SHORT).show();
                 break;
         }
+
+
     }
 
     private void restoreInstallRestriction(Context context) {
