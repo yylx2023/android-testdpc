@@ -19,10 +19,10 @@ package com.goofish.emm.locktask;
 import com.afwsamples.testdpc.DeviceAdminReceiver;
 import com.afwsamples.testdpc.PolicyManagementActivity;
 import com.afwsamples.testdpc.R;
+
 import com.afwsamples.testdpc.common.PackageInstallationUtils;
 import com.afwsamples.testdpc.common.Util;
-import com.azhon.appupdate.listener.OnDownloadListener;
-import com.azhon.appupdate.manager.DownloadManager;
+
 import com.blankj.utilcode.util.AppUtils;
 import com.goofish.emm.About;
 import com.goofish.emm.EmmApp;
@@ -37,6 +37,12 @@ import com.goofish.emm.http.Resp;
 import com.goofish.emm.http.RetrofitClient;
 import com.goofish.emm.http.CommonRequest;
 import com.goofish.emm.http.VersionCheckResponse;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+
 import com.goofish.emm.tutu.TutuUtil;
 import com.goofish.emm.util.DeviceInfoHelper;
 import com.goofish.emm.util.DeviceUtil;
@@ -981,56 +987,67 @@ public class KioskModeActivity extends Activity {
         NetworkManager.INSTANCE.makeRequest(call, new NetCallback<VersionCheckResponse>() {
             @Override
             public void onSuccess(@NonNull Resp.Common<VersionCheckResponse> resp, @NonNull byte[] data) {
-                if (Resp.SUCCESS.equals(resp.getCode())) {
-                    VersionCheckResponse d = resp.getData();
-                    DownloadManager manager = new DownloadManager.Builder(KioskModeActivity.this)
-                            .apkUrl(d.getApkUrl())
-                            .apkName("appupdate.apk")
-                            .smallIcon(R.drawable.ic_launcher)
-                            .forcedUpgrade(true)
-                            .apkVersionCode(d.getVersionCode())
-                            .apkVersionName(d.getVersionName())
-                            .apkSize(d.getSize())
-                            .apkDescription(d.getUpgradeMsg())
-                            // 禁止库自动跳转系统安装页面，改用 DPC 静默安装
-                            .jumpInstallPage(false)
-                            .onDownloadListener(new OnDownloadListener() {
-                                @Override
-                                public void start() {
-                                    Log.i(TAG, "Self-update download started");
-                                }
-
-                                @Override
-                                public void downloading(int max, int progress) {
-                                }
-
-                                @Override
-                                public void done(@NonNull File apk) {
-                                    Log.i(TAG, "Self-update download done: " + apk.getAbsolutePath());
-                                    silentInstallApk(apk);
-                                }
-
-                                @Override
-                                public void cancel() {
-                                    Log.w(TAG, "Self-update download cancelled");
-                                }
-
-                                @Override
-                                public void error(@NonNull Throwable e) {
-                                    Log.e(TAG, "Self-update download error", e);
-                                }
-                            })
-                            .build();
-                    manager.download();
+                if (!Resp.SUCCESS.equals(resp.getCode())) {
+                    return;
                 }
+                VersionCheckResponse d = resp.getData();
+                if (d == null || d.getApkUrl() == null || d.getApkUrl().isEmpty()) {
+                    Log.e(TAG, "Invalid version response: apkUrl is empty");
+                    return;
+                }
+                Log.i(TAG, "Start self-update download, version=" + d.getVersionName() + "(" + d.getVersionCode() + "), url=" + d.getApkUrl());
+                downloadAndInstallApk(d.getApkUrl());
             }
 
             @Override
             public void onNetError(int statusCode, @NonNull String msg) {
-
+                Log.e(TAG, "Version check failed, code=" + statusCode + ", msg=" + msg);
             }
         });
     }
+
+    private void downloadAndInstallApk(@NonNull String apkUrl) {
+        OkHttpClient client = new OkHttpClient.Builder().build();
+        Request request = new Request.Builder().url(apkUrl).build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
+                Log.e(TAG, "Self-update download failed", e);
+                runOnUiThread(() -> Toast.makeText(KioskModeActivity.this, "下载更新失败", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) throws IOException {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Log.e(TAG, "Self-update download failed, http=" + response.code());
+                    runOnUiThread(() -> Toast.makeText(KioskModeActivity.this, "下载更新失败", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                File updateDir = new File(getCacheDir(), "app_update_cache");
+                if (!updateDir.exists() && !updateDir.mkdirs()) {
+                    Log.e(TAG, "Failed to create update dir: " + updateDir.getAbsolutePath());
+                    return;
+                }
+
+                File apkFile = new File(updateDir, "appupdate.apk");
+                try (java.io.InputStream in = response.body().byteStream();
+                     java.io.FileOutputStream out = new java.io.FileOutputStream(apkFile, false)) {
+                    byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, len);
+                    }
+                    out.flush();
+                }
+
+                Log.i(TAG, "Self-update apk downloaded: " + apkFile.getAbsolutePath() + ", size=" + apkFile.length());
+                silentInstallApk(apkFile);
+            }
+        });
+    }
+
+
 
     /**
      * 通过 PackageInstaller Session 静默安装 APK（Device Owner 特权）。
