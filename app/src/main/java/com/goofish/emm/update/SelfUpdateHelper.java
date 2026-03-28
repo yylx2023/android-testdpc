@@ -5,11 +5,16 @@ import static android.os.UserManager.DISALLOW_INSTALL_APPS;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.admin.DevicePolicyManager;
-
-
 import android.content.ComponentName;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
+
+
 
 import androidx.annotation.NonNull;
 
@@ -42,8 +47,14 @@ public final class SelfUpdateHelper {
     private static final String TAG = "SelfUpdateHelper";
     private static volatile boolean sUpdateInProgress = false;
     private static AlertDialog sProgressDialog;
+    private static TextView sDialogMessageView;
+    private static LinearLayout sProgressContainer;
+    private static ProgressBar sHorizontalProgressBar;
+    private static TextView sProgressPercentView;
 
     private SelfUpdateHelper() {}
+
+
 
 
 
@@ -79,20 +90,20 @@ public final class SelfUpdateHelper {
                     }
                     sUpdateInProgress = true;
                     Log.i(TAG, "Start self-update download, version=" + d.getVersionName() + "(" + d.getVersionCode() + "), url=" + d.getApkUrl());
-                    showProgress(activity, "正在下载更新", "准备开始...");
+                    switchDialogToProgress(activity, "正在下载更新", 0);
                     downloadAndInstallApk(activity, d.getApkUrl());
+
+
                 };
                 if (showConfirmDialog) {
-                    activity.runOnUiThread(() -> new AlertDialog.Builder(activity)
-                            .setTitle("发现新版本")
-                            .setMessage("当前版本: " + AppUtils.getAppVersionName() + "\n新版本: " + d.getVersionName() + "\n大小: " + d.getSize() + "\n\n更新内容:\n" + d.getUpgradeMsg())
-                            .setCancelable(true)
-                            .setNegativeButton("取消", null)
-                            .setPositiveButton("立即更新", (dialog, which) -> startUpdate.run())
-                            .show());
+                    activity.runOnUiThread(() -> showConfirmDialog(activity,
+                            "当前版本: " + AppUtils.getAppVersionName() + "\n新版本: " + d.getVersionName() + "\n大小: " + d.getSize() + "\n\n更新内容:\n" + d.getUpgradeMsg(),
+                            startUpdate));
                 } else {
                     startUpdate.run();
                 }
+
+
 
 
             }
@@ -153,14 +164,16 @@ public final class SelfUpdateHelper {
                             int percent = (int) ((downloaded * 100) / total);
                             if (percent != lastPercent) {
                                 lastPercent = percent;
-                                updateProgress(activity, "正在下载更新", percent + "%");
+                                updateProgress(activity, "正在下载更新", percent);
+
                             }
                         }
                     }
                     out.flush();
                 }
                 Log.i(TAG, "Self-update apk downloaded: " + apkFile.getAbsolutePath() + ", size=" + apkFile.length());
-                updateProgress(activity, "正在安装更新", "请稍候...");
+                updateStatusText(activity, "正在安装更新", "安装包已下载完成，正在静默安装，请稍候...");
+
                 silentInstallApk(activity, apkFile);
             }
         });
@@ -191,26 +204,110 @@ public final class SelfUpdateHelper {
         }
     }
 
-    private static void showProgress(@NonNull Activity activity, @NonNull String title, @NonNull String message) {
-        activity.runOnUiThread(() -> {
-            dismissProgress(activity);
-            sProgressDialog = new AlertDialog.Builder(activity)
-                    .setTitle(title)
-                    .setMessage(message)
-                    .setCancelable(false)
-                    .create();
-            sProgressDialog.show();
-        });
+    private static void showConfirmDialog(@NonNull Activity activity, @NonNull String message, @NonNull Runnable startUpdate) {
+        dismissProgress(activity);
+        LinearLayout root = new LinearLayout(activity);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(activity, 20);
+        root.setPadding(padding, dp(activity, 12), padding, dp(activity, 8));
+
+        TextView messageView = new TextView(activity);
+        messageView.setText(message);
+        messageView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        root.addView(messageView);
+
+        LinearLayout progressContainer = new LinearLayout(activity);
+        progressContainer.setOrientation(LinearLayout.VERTICAL);
+        progressContainer.setVisibility(View.GONE);
+        progressContainer.setPadding(0, dp(activity, 16), 0, 0);
+
+        ProgressBar progressBar = new ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal);
+        progressBar.setMax(100);
+        progressBar.setProgress(0);
+        progressContainer.addView(progressBar,
+                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        TextView percentView = new TextView(activity);
+        percentView.setText("0%");
+        percentView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        percentView.setPadding(0, dp(activity, 8), 0, 0);
+        progressContainer.addView(percentView);
+
+        root.addView(progressContainer);
+
+        AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("发现新版本")
+                .setView(root)
+                .setCancelable(true)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("立即更新", null)
+                .create();
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            sProgressDialog = dialog;
+            sDialogMessageView = messageView;
+            sProgressContainer = progressContainer;
+            sHorizontalProgressBar = progressBar;
+            sProgressPercentView = percentView;
+            dialog.setCancelable(false);
+            if (dialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null) {
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
+            }
+            if (dialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+            }
+            startUpdate.run();
+        }));
+        dialog.show();
     }
 
-    private static void updateProgress(@NonNull Activity activity, @NonNull String title, @NonNull String message) {
+    private static void switchDialogToProgress(@NonNull Activity activity, @NonNull String title, int progress) {
         activity.runOnUiThread(() -> {
-            if (sProgressDialog == null || !sProgressDialog.isShowing()) {
-                showProgress(activity, title, message);
+            if (sProgressDialog == null) {
                 return;
             }
             sProgressDialog.setTitle(title);
-            sProgressDialog.setMessage(message);
+            if (sProgressContainer != null) {
+                sProgressContainer.setVisibility(View.VISIBLE);
+            }
+            if (sHorizontalProgressBar != null) {
+                sHorizontalProgressBar.setProgress(progress);
+            }
+            if (sProgressPercentView != null) {
+                sProgressPercentView.setText(progress + "%");
+            }
+        });
+    }
+
+    private static void updateProgress(@NonNull Activity activity, @NonNull String title, int progress) {
+        activity.runOnUiThread(() -> {
+            if (sProgressDialog == null) {
+                return;
+            }
+            sProgressDialog.setTitle(title);
+            if (sProgressContainer != null) {
+                sProgressContainer.setVisibility(View.VISIBLE);
+            }
+            if (sHorizontalProgressBar != null) {
+                sHorizontalProgressBar.setProgress(progress);
+            }
+            if (sProgressPercentView != null) {
+                sProgressPercentView.setText(progress + "%");
+            }
+        });
+    }
+
+    private static void updateStatusText(@NonNull Activity activity, @NonNull String title, @NonNull String status) {
+        activity.runOnUiThread(() -> {
+            if (sProgressDialog == null) {
+                return;
+            }
+            sProgressDialog.setTitle(title);
+            if (sProgressContainer != null) {
+                sProgressContainer.setVisibility(View.VISIBLE);
+            }
+            if (sDialogMessageView != null) {
+                sDialogMessageView.setText(status);
+            }
         });
     }
 
@@ -220,8 +317,21 @@ public final class SelfUpdateHelper {
                 sProgressDialog.dismiss();
             }
             sProgressDialog = null;
+            sDialogMessageView = null;
+            sProgressContainer = null;
+            sHorizontalProgressBar = null;
+            sProgressPercentView = null;
         });
     }
+
+    private static int dp(@NonNull Activity activity, int value) {
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                value,
+                activity.getResources().getDisplayMetrics());
+    }
+
+
 
     public static void onInstallFinished(boolean success) {
         sUpdateInProgress = false;
