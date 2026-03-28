@@ -73,7 +73,7 @@ android {
         minSdk 23
         targetSdk 34
         versionCode getGitCommitCount()
-        versionName "V1.0.0-${buildTime()}-${versionCode}-${getGitCommitId()}"
+        versionName "V2.0.0-${buildTime()}-${versionCode}-${getGitCommitId()}"
         buildConfigField("String", "BUILD_TIME", '"' + buildTime() + '"')
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
