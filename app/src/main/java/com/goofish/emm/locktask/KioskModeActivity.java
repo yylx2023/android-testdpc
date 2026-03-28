@@ -779,8 +779,6 @@ public class KioskModeActivity extends Activity {
 
     private void setDefaultKioskPolicies(boolean active) {
         if (active) {
-            saveCurrentConfiguration();
-
             // 1. 用户限制 —— 始终生效（禁止安装/卸载/恢复出厂等）
             for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
                 setUserRestriction(userRestriction, true);
@@ -802,7 +800,11 @@ public class KioskModeActivity extends Activity {
                 Log.i(TAG, "LockTask DISABLED, skipping setLockTaskPackages/setLockTaskFeatures");
             }
         } else {
-            restorePreviousConfiguration();
+            // 直接清除所有用户限制，不依赖备份（避免重启后备份被覆盖导致无法解除）
+            for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
+                setUserRestriction(userRestriction, false);
+            }
+            Log.i(TAG, "User restrictions cleared: " + Arrays.toString(KIOSK_USER_RESTRICTIONS));
 
             // 清除 suspend
             suspendBlacklistApps(false);
@@ -846,30 +848,6 @@ public class KioskModeActivity extends Activity {
         }
     }
 
-    @TargetApi(VERSION_CODES.N)
-    private void saveCurrentConfiguration() {
-        if (Util.SDK_INT >= VERSION_CODES.N) {
-            Bundle settingsBundle = mDevicePolicyManager.getUserRestrictions(mAdminComponentName);
-            SharedPreferences.Editor editor = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE).edit();
-
-            for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
-                boolean currentSettingValue = settingsBundle.getBoolean(userRestriction);
-                editor.putBoolean(userRestriction, currentSettingValue);
-            }
-            editor.commit();
-        }
-    }
-
-    private void restorePreviousConfiguration() {
-        if (Util.SDK_INT >= VERSION_CODES.N) {
-            SharedPreferences sharedPreferences = getSharedPreferences(KIOSK_PREFERENCE_FILE, MODE_PRIVATE);
-
-            for (String userRestriction : KIOSK_USER_RESTRICTIONS) {
-                boolean prevSettingValue = sharedPreferences.getBoolean(userRestriction, false);
-                setUserRestriction(userRestriction, prevSettingValue);
-            }
-        }
-    }
 
     /**
      * 设置 Lock Task Features 以控制在 Lock Task 模式下可用的功能
