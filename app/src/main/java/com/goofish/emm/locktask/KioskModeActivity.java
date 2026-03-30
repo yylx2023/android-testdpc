@@ -20,7 +20,6 @@ import com.afwsamples.testdpc.DeviceAdminReceiver;
 import com.afwsamples.testdpc.PolicyManagementActivity;
 import com.afwsamples.testdpc.R;
 
-import com.afwsamples.testdpc.common.PackageInstallationUtils;
 import com.afwsamples.testdpc.common.Util;
 
 import com.blankj.utilcode.util.AppUtils;
@@ -35,12 +34,7 @@ import com.goofish.emm.http.NetCallback;
 import com.goofish.emm.http.NetworkManager;
 import com.goofish.emm.http.Resp;
 import com.goofish.emm.http.RetrofitClient;
-import com.goofish.emm.http.CommonRequest;
-import com.goofish.emm.http.VersionCheckResponse;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import com.goofish.emm.update.SelfUpdateHelper;
 
 
 import com.goofish.emm.tutu.TutuUtil;
@@ -91,8 +85,6 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -980,99 +972,7 @@ public class KioskModeActivity extends Activity {
     }
 
     private void checkVersion() {
-        ApiService apiService = RetrofitClient.INSTANCE.getApiService();
-
-        CommonRequest request = new CommonRequest(DeviceUtil.getDeviceImei(KioskModeActivity.this), AppUtils.getAppVersionCode());
-        Call<Resp.Common<VersionCheckResponse>> call = apiService.versionCheck(request);
-        NetworkManager.INSTANCE.makeRequest(call, new NetCallback<VersionCheckResponse>() {
-            @Override
-            public void onSuccess(@NonNull Resp.Common<VersionCheckResponse> resp, @NonNull byte[] data) {
-                if (!Resp.SUCCESS.equals(resp.getCode())) {
-                    return;
-                }
-                VersionCheckResponse d = resp.getData();
-                if (d == null || d.getApkUrl() == null || d.getApkUrl().isEmpty()) {
-                    Log.e(TAG, "Invalid version response: apkUrl is empty");
-                    return;
-                }
-                Log.i(TAG, "Start self-update download, version=" + d.getVersionName() + "(" + d.getVersionCode() + "), url=" + d.getApkUrl());
-                downloadAndInstallApk(d.getApkUrl());
-            }
-
-            @Override
-            public void onNetError(int statusCode, @NonNull String msg) {
-                Log.e(TAG, "Version check failed, code=" + statusCode + ", msg=" + msg);
-            }
-        });
-    }
-
-    private void downloadAndInstallApk(@NonNull String apkUrl) {
-        OkHttpClient client = new OkHttpClient.Builder().build();
-        Request request = new Request.Builder().url(apkUrl).build();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
-                Log.e(TAG, "Self-update download failed", e);
-                runOnUiThread(() -> Toast.makeText(KioskModeActivity.this, "下载更新失败", Toast.LENGTH_SHORT).show());
-            }
-
-            @Override
-            public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) throws IOException {
-                if (!response.isSuccessful() || response.body() == null) {
-                    Log.e(TAG, "Self-update download failed, http=" + response.code());
-                    runOnUiThread(() -> Toast.makeText(KioskModeActivity.this, "下载更新失败", Toast.LENGTH_SHORT).show());
-                    return;
-                }
-
-                File updateDir = new File(getCacheDir(), "app_update_cache");
-                if (!updateDir.exists() && !updateDir.mkdirs()) {
-                    Log.e(TAG, "Failed to create update dir: " + updateDir.getAbsolutePath());
-                    return;
-                }
-
-                File apkFile = new File(updateDir, "appupdate.apk");
-                try (java.io.InputStream in = response.body().byteStream();
-                     java.io.FileOutputStream out = new java.io.FileOutputStream(apkFile, false)) {
-                    byte[] buffer = new byte[8192];
-                    int len;
-                    while ((len = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, len);
-                    }
-                    out.flush();
-                }
-
-                Log.i(TAG, "Self-update apk downloaded: " + apkFile.getAbsolutePath() + ", size=" + apkFile.length());
-                silentInstallApk(apkFile);
-            }
-        });
-    }
-
-
-
-    /**
-     * 通过 PackageInstaller Session 静默安装 APK（Device Owner 特权）。
-     * 安装前临时解除 DISALLOW_INSTALL_APPS，安装完成后由 SelfUpdateInstallReceiver 恢复。
-     */
-    private void silentInstallApk(File apk) {
-        try {
-            if (KioskConfig.DISALLOW_INSTALL) {
-                mDevicePolicyManager.clearUserRestriction(mAdminComponentName, DISALLOW_INSTALL_APPS);
-                Log.i(TAG, "Temporarily cleared DISALLOW_INSTALL_APPS for self-update");
-            }
-            FileInputStream fis = new FileInputStream(apk);
-            boolean success = PackageInstallationUtils.installPackage(this, fis, getPackageName());
-            Log.i(TAG, "Silent install commit sent, success=" + success);
-        } catch (IOException e) {
-            Log.e(TAG, "Silent install failed before commit", e);
-            if (KioskConfig.DISALLOW_INSTALL) {
-                try {
-                    mDevicePolicyManager.addUserRestriction(mAdminComponentName, DISALLOW_INSTALL_APPS);
-                    Log.i(TAG, "Restored DISALLOW_INSTALL_APPS after pre-commit failure");
-                } catch (Exception restoreError) {
-                    Log.e(TAG, "Failed to restore DISALLOW_INSTALL_APPS after pre-commit failure", restoreError);
-                }
-            }
-        }
+        SelfUpdateHelper.checkVersionAndUpdate(this);
     }
 
 

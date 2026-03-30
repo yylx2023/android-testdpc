@@ -36,30 +36,54 @@ public class SelfUpdateInstallReceiver extends BroadcastReceiver {
         String packageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME);
         String message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
 
+        if (packageName != null && !context.getPackageName().equals(packageName)) {
+            Log.w(TAG, "Ignore install callback for other package: " + packageName);
+            return;
+        }
+
         Log.i(TAG, "Install complete callback, status=" + status
                 + ", package=" + packageName + ", message=" + message);
 
-        restoreInstallRestriction(context);
-        SelfUpdateHelper.onInstallFinished(status == PackageInstaller.STATUS_SUCCESS);
-
-        switch (status) {
-            case PackageInstaller.STATUS_SUCCESS:
-                Log.i(TAG, "Self-update install success");
-                Toast.makeText(context, "更新安装成功", Toast.LENGTH_SHORT).show();
-                break;
-            case PackageInstaller.STATUS_PENDING_USER_ACTION:
-                Log.w(TAG, "Self-update install requires user action: "
-                        + intent.getParcelableExtra(Intent.EXTRA_INTENT));
-                Toast.makeText(context, "安装需要用户确认", Toast.LENGTH_SHORT).show();
-                break;
-            default:
-                Log.e(TAG, "Self-update install failed, status=" + status + ", msg=" + message);
-                Toast.makeText(context, "更新安装失败: " + (message == null ? status : message), Toast.LENGTH_SHORT).show();
-                break;
+        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            Intent confirmIntent = intent.getParcelableExtra(Intent.EXTRA_INTENT);
+            Log.w(TAG, "Self-update install requires user action: " + confirmIntent);
+            if (confirmIntent != null) {
+                confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    context.startActivity(confirmIntent);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to launch install confirmation", e);
+                    restoreInstallRestriction(context);
+                    SelfUpdateHelper.onInstallFinished(false);
+                    Toast.makeText(context, "无法打开安装确认页面", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Log.e(TAG, "Install confirmation intent is null");
+                restoreInstallRestriction(context);
+                SelfUpdateHelper.onInstallFinished(false);
+                Toast.makeText(context, "安装确认页面为空", Toast.LENGTH_SHORT).show();
+            }
+            Toast.makeText(context, "安装需要用户确认", Toast.LENGTH_SHORT).show();
+            return;
         }
 
+        restoreInstallRestriction(context);
+        boolean success = status == PackageInstaller.STATUS_SUCCESS;
+        SelfUpdateHelper.onInstallFinished(success);
 
+        if (success) {
+            Log.i(TAG, "Self-update install success");
+            Toast.makeText(context, "更新安装成功", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.e(TAG, "Self-update install failed, status=" + status + ", msg=" + message);
+        Toast.makeText(context,
+                "更新安装失败: " + (message == null ? String.valueOf(status) : message),
+                Toast.LENGTH_SHORT).show();
     }
+
+
 
     private void restoreInstallRestriction(Context context) {
         if (!KioskConfig.DISALLOW_INSTALL) {

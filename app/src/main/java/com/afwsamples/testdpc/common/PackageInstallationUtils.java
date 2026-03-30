@@ -55,18 +55,21 @@ public class PackageInstallationUtils {
     return true;
   }
 
+  @SuppressWarnings("UnspecifiedImmutableFlag") // TODO(b/210723613): proper fix
+  private static IntentSender createInstallIntentSender(Context context, int sessionId) {
+    final Intent intent = new Intent(ACTION_INSTALL_COMPLETE);
+    intent.setPackage(context.getPackageName());
+    final PendingIntent pendingIntent =
+        PendingIntent.getBroadcast(context, sessionId, intent, PendingIntent.FLAG_IMMUTABLE);
+    return pendingIntent.getIntentSender();
+  }
+
+
   public static void uninstallPackage(Context context, String packageName) {
     final PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
     packageInstaller.uninstall(packageName, createUninstallIntentSender(context, packageName));
   }
 
-  @SuppressWarnings("UnspecifiedImmutableFlag") // TODO(b/210723613): proper fix
-  private static IntentSender createInstallIntentSender(Context context, int sessionId) {
-    final PendingIntent pendingIntent =
-        PendingIntent.getBroadcast(context, sessionId, new Intent(ACTION_INSTALL_COMPLETE),
-            PendingIntent.FLAG_IMMUTABLE);
-    return pendingIntent.getIntentSender();
-  }
 
   @SuppressWarnings("UnspecifiedImmutableFlag") // TODO(b/210723613): proper fix
   private static IntentSender createUninstallIntentSender(Context context, String packageName) {
