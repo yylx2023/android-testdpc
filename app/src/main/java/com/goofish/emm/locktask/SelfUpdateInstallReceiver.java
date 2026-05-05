@@ -33,16 +33,25 @@ public class SelfUpdateInstallReceiver extends BroadcastReceiver {
         }
 
         int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
-        String packageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME);
+        String callbackPackageName = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME);
+        String requestedPackageName = intent.getStringExtra(PackageInstallationUtils.EXTRA_REQUESTED_PACKAGE_NAME);
+        String installSource = intent.getStringExtra(PackageInstallationUtils.EXTRA_INSTALL_SOURCE);
         String message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
-
-        if (packageName != null && !context.getPackageName().equals(packageName)) {
-            Log.w(TAG, "Ignore install callback for other package: " + packageName);
-            return;
-        }
+        String packageName = callbackPackageName != null ? callbackPackageName : requestedPackageName;
+        boolean isSelfUpdate = PackageInstallationUtils.INSTALL_SOURCE_SELF_UPDATE.equals(installSource)
+                || (installSource == null && context.getPackageName().equals(packageName));
 
         Log.i(TAG, "Install complete callback, status=" + status
-                + ", package=" + packageName + ", message=" + message);
+                + ", callbackPackage=" + callbackPackageName
+                + ", requestedPackage=" + requestedPackageName
+                + ", source=" + installSource
+                + ", message=" + message);
+
+        if (!isSelfUpdate) {
+            restoreInstallRestriction(context);
+            Log.i(TAG, "Non-self install callback handled for package: " + packageName);
+            return;
+        }
 
         if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
             Intent confirmIntent = intent.getParcelableExtra(Intent.EXTRA_INTENT);

@@ -267,7 +267,11 @@ public final class SelfUpdateHelper {
             }
             // 使用 try-with-resources 确保 FileInputStream 被关闭
             try (FileInputStream fis = new FileInputStream(apk)) {
-                boolean success = PackageInstallationUtils.installPackage(activity, fis, activity.getPackageName());
+                boolean success = PackageInstallationUtils.installPackage(
+                        activity,
+                        fis,
+                        activity.getPackageName(),
+                        PackageInstallationUtils.INSTALL_SOURCE_SELF_UPDATE);
                 Log.i(TAG, "Silent install commit sent, success=" + success);
             }
         } catch (IOException e) {

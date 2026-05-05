@@ -386,7 +386,15 @@
         <activity
             android:name="com.goofish.emm.appstore.AppstoreActivity"
             android:screenOrientation="portrait"
-            android:exported="true" />
+            android:label="应用市场"
+            android:icon="@drawable/icon_appstore"
+            android:exported="true">
+            <!-- 添加 intent-filter 使其在 Kiosk 桌面显示 -->
+            <intent-filter>
+                <action android:name="com.goofish.emm.action.ON_DESK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
         <activity
             android:name="com.goofish.emm.About"
             android:label="关于我们"

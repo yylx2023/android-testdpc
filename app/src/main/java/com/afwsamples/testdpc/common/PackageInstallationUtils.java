@@ -29,36 +29,53 @@ import java.io.OutputStream;
 public class PackageInstallationUtils {
 
   public static final String ACTION_INSTALL_COMPLETE = "com.afwsamples.testdpc.INSTALL_COMPLETE";
+  public static final String EXTRA_REQUESTED_PACKAGE_NAME =
+      "com.afwsamples.testdpc.REQUESTED_PACKAGE_NAME";
+  public static final String EXTRA_INSTALL_SOURCE = "com.afwsamples.testdpc.INSTALL_SOURCE";
+  public static final String INSTALL_SOURCE_SELF_UPDATE = "self_update";
+  public static final String INSTALL_SOURCE_APPSTORE = "appstore";
   private static final String ACTION_UNINSTALL_COMPLETE =
       "com.afwsamples.testdpc.UNINSTALL_COMPLETE";
 
   public static boolean installPackage(Context context, InputStream in, String packageName)
       throws IOException {
+    return installPackage(context, in, packageName, null);
+  }
+
+  public static boolean installPackage(
+      Context context, InputStream in, String packageName, String installSource) throws IOException {
     final PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
     final PackageInstaller.SessionParams params =
         new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
     params.setAppPackageName(packageName);
-    // set params
     final int sessionId = packageInstaller.createSession(params);
-    final PackageInstaller.Session session = packageInstaller.openSession(sessionId);
-    final OutputStream out = session.openWrite("TestDPC", 0, -1);
-    final byte[] buffer = new byte[65536];
-    int c;
-    while ((c = in.read(buffer)) != -1) {
-      out.write(buffer, 0, c);
+    boolean commitSent = false;
+    try (PackageInstaller.Session session = packageInstaller.openSession(sessionId);
+        OutputStream out = session.openWrite("TestDPC", 0, -1)) {
+      final byte[] buffer = new byte[65536];
+      int c;
+      while ((c = in.read(buffer)) != -1) {
+        out.write(buffer, 0, c);
+      }
+      session.fsync(out);
+      session.commit(createInstallIntentSender(context, sessionId, packageName, installSource));
+      commitSent = true;
+      return true;
+    } finally {
+      in.close();
+      if (!commitSent) {
+        packageInstaller.abandonSession(sessionId);
+      }
     }
-    session.fsync(out);
-    in.close();
-    out.close();
-
-    session.commit(createInstallIntentSender(context, sessionId));
-    return true;
   }
 
   @SuppressWarnings("UnspecifiedImmutableFlag") // TODO(b/210723613): proper fix
-  private static IntentSender createInstallIntentSender(Context context, int sessionId) {
+  private static IntentSender createInstallIntentSender(
+      Context context, int sessionId, String packageName, String installSource) {
     final Intent intent = new Intent(ACTION_INSTALL_COMPLETE);
     intent.setPackage(context.getPackageName());
+    intent.putExtra(EXTRA_REQUESTED_PACKAGE_NAME, packageName);
+    intent.putExtra(EXTRA_INSTALL_SOURCE, installSource);
     final PendingIntent pendingIntent =
         PendingIntent.getBroadcast(context, sessionId, intent, PendingIntent.FLAG_IMMUTABLE);
     return pendingIntent.getIntentSender();

@@ -1,4 +1,6 @@
+import android.app.admin.DevicePolicyManager
 import android.content.Context
+import android.os.UserManager.DISALLOW_INSTALL_APPS
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -6,15 +8,19 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.afwsamples.testdpc.DeviceAdminReceiver
 import com.afwsamples.testdpc.R
+import com.afwsamples.testdpc.common.PackageInstallationUtils
 import com.blankj.utilcode.util.AppUtils
 import com.bumptech.glide.Glide
 import com.goofish.emm.appstore.App
 import com.goofish.emm.download.DownloadCallback
 import com.goofish.emm.download.DownloadManager
+import com.goofish.emm.locktask.KioskConfig
 import com.goofish.emm.util.Dpm
 import com.tonyodev.fetch2.Download
 import java.io.File
+import java.io.FileInputStream
 
 class AppGridAdapter(
     private val context: Context,
@@ -437,21 +443,50 @@ class AppGridAdapter(
     }
 
     private fun installApk(file: File, packageName: String) {
-        // Implement APK installation logic here
-        // Note: This requires additional setup for installing APKs on Android 7.0+
         Log.i("AppGridAdapter", "Installing APK: ${file.absolutePath}")
 
-        AppUtils.installApp(file)
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val admin = DeviceAdminReceiver.getComponentName(context)
+        var installCommitted = false
 
-        // 安装完成后清除下载状态（延迟一下，等待安装完成）
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+        try {
+            if (KioskConfig.DISALLOW_INSTALL) {
+                dpm.clearUserRestriction(admin, DISALLOW_INSTALL_APPS)
+                Log.i("AppGridAdapter", "Temporarily cleared DISALLOW_INSTALL_APPS for appstore install")
+            }
+
+            FileInputStream(file).use { inputStream ->
+                installCommitted = PackageInstallationUtils.installPackage(
+                    context,
+                    inputStream,
+                    packageName,
+                    PackageInstallationUtils.INSTALL_SOURCE_APPSTORE
+                )
+            }
+            Log.i("AppGridAdapter", "Appstore install commit sent, package=$packageName, success=$installCommitted")
+        } catch (e: Exception) {
+            Log.e("AppGridAdapter", "Failed to install APK: $packageName", e)
             downloadingApps.remove(packageName)
             viewHolders.remove(packageName)
+            if (KioskConfig.DISALLOW_INSTALL) {
+                try {
+                    dpm.addUserRestriction(admin, DISALLOW_INSTALL_APPS)
+                    Log.i("AppGridAdapter", "Restored DISALLOW_INSTALL_APPS after appstore install failure")
+                } catch (restoreError: Exception) {
+                    Log.e("AppGridAdapter", "Failed to restore DISALLOW_INSTALL_APPS", restoreError)
+                }
+            }
+        }
+
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (!installCommitted || AppUtils.isAppInstalled(packageName)) {
+                downloadingApps.remove(packageName)
+                viewHolders.remove(packageName)
+            }
             val pos = getAppPosition(packageName)
             if (pos >= 0) {
-                // 使用 payload 局部更新状态
                 notifyItemChanged(pos, PAYLOAD_STATUS)
             }
-        }, 2000) // 2秒后刷新状态
+        }, 2000)
     }
 }
