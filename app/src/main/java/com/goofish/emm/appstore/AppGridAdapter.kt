@@ -112,102 +112,96 @@ class AppGridAdapter(
         // 保存 ViewHolder 引用
         viewHolders[app.packageName] = holder
 
-        // Check if app is installed
         val isInstalled = AppUtils.isAppInstalled(app.packageName)
         val downloadState = downloadingApps[app.packageName]
 
         Log.d("AppGridAdapter", "onBindViewHolder (full): pos=$position, pkg=${app.packageName}, " +
                 "isInstalled=$isInstalled, downloadState=$downloadState")
 
+        bindStatus(holder, app, isInstalled, downloadState)
+        bindActions(holder, app, isInstalled, downloadState)
+    }
+
+    private fun bindStatus(
+        holder: ViewHolder,
+        app: App,
+        isInstalled: Boolean,
+        downloadState: DownloadState?
+    ) {
         when {
-            // 已安装
-            isInstalled -> {
-                Log.d("AppGridAdapter", "Showing installed state for ${app.name}")
-                holder.statusText.text = "已安装"
-                holder.statusText.setTextColor(context.getColor(android.R.color.holo_green_dark))
-                holder.statusBadge.visibility = View.VISIBLE
-                holder.statusBadge.setImageResource(android.R.drawable.checkbox_on_background)
-                holder.progressContainer.visibility = View.GONE
-                // 清除下载状态和引用
-                downloadingApps.remove(app.packageName)
-                viewHolders.remove(app.packageName)
-            }
-            // 安装中
-            downloadState?.isInstalling == true -> {
-                Log.d("AppGridAdapter", "Showing installing state for ${app.name}")
-                holder.statusText.text = "安装中..."
-                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
-                holder.statusBadge.visibility = View.GONE
-                holder.progressContainer.visibility = View.GONE
-            }
-            // 下载中
             downloadState?.isDownloading == true -> {
                 Log.d("AppGridAdapter", "Showing downloading state for ${app.name}, progress=${downloadState.progress}%")
                 holder.statusText.text = "下载中..."
                 holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
+                holder.statusText.isEnabled = false
+                holder.statusText.alpha = 0.7f
                 holder.statusBadge.visibility = View.GONE
                 holder.progressContainer.visibility = View.VISIBLE
                 holder.downloadProgress.progress = downloadState.progress
                 holder.progressText.text = "${downloadState.progress}%"
-                Log.d("AppGridAdapter", "Progress bar set to ${downloadState.progress}%, visibility=${holder.progressContainer.visibility}")
             }
-            // 未安装
+            downloadState?.isInstalling == true -> {
+                Log.d("AppGridAdapter", "Showing installing state for ${app.name}")
+                holder.statusText.text = "安装中..."
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
+                holder.statusText.isEnabled = false
+                holder.statusText.alpha = 0.7f
+                holder.statusBadge.visibility = View.GONE
+                holder.progressContainer.visibility = View.GONE
+            }
+            isInstalled -> {
+                Log.d("AppGridAdapter", "Showing installed state for ${app.name}")
+                holder.statusText.text = "强制更新"
+                holder.statusText.setTextColor(context.getColor(android.R.color.holo_green_dark))
+                holder.statusText.isEnabled = true
+                holder.statusText.alpha = 1f
+                holder.statusBadge.visibility = View.VISIBLE
+                holder.statusBadge.setImageResource(android.R.drawable.checkbox_on_background)
+                holder.progressContainer.visibility = View.GONE
+                downloadingApps.remove(app.packageName)
+                viewHolders.remove(app.packageName)
+            }
             else -> {
                 Log.d("AppGridAdapter", "Showing not installed state for ${app.name}")
-                holder.statusText.text = "点击下载"
+                holder.statusText.text = "下载"
                 holder.statusText.setTextColor(context.getColor(android.R.color.holo_blue_dark))
+                holder.statusText.isEnabled = true
+                holder.statusText.alpha = 1f
                 holder.statusBadge.visibility = View.GONE
                 holder.progressContainer.visibility = View.GONE
                 viewHolders.remove(app.packageName)
             }
         }
+    }
 
-        holder.itemView.setOnClickListener {
-            if (isInstalled) {
-                launchApp(app.packageName, holder.itemView.context)
-            } else if (downloadState?.isDownloading != true) {
-                // 只有在未下载时才允许点击下载
-                startDownload(app)
-            }
+    private fun bindActions(
+        holder: ViewHolder,
+        app: App,
+        isInstalled: Boolean,
+        downloadState: DownloadState?
+    ) {
+        val canStartDownload = downloadState?.isDownloading != true && downloadState?.isInstalling != true
+        holder.statusText.setOnClickListener(null)
+        holder.itemView.setOnClickListener(null)
+
+        if (!canStartDownload) {
+            return
+        }
+
+        if (isInstalled) {
+            holder.itemView.setOnClickListener { launchApp(app.packageName, holder.itemView.context) }
+            holder.statusText.setOnClickListener { startDownload(app) }
+        } else {
+            holder.itemView.setOnClickListener { startDownload(app) }
+            holder.statusText.setOnClickListener { startDownload(app) }
         }
     }
 
     private fun updateStatusOnly(holder: ViewHolder, app: App) {
         val isInstalled = AppUtils.isAppInstalled(app.packageName)
         val downloadState = downloadingApps[app.packageName]
-
-        when {
-            isInstalled -> {
-                holder.statusText.text = "已安装"
-                holder.statusText.setTextColor(context.getColor(android.R.color.holo_green_dark))
-                holder.statusBadge.visibility = View.VISIBLE
-                holder.statusBadge.setImageResource(android.R.drawable.checkbox_on_background)
-                holder.progressContainer.visibility = View.GONE
-                downloadingApps.remove(app.packageName)
-                viewHolders.remove(app.packageName)
-            }
-            downloadState?.isInstalling == true -> {
-                holder.statusText.text = "安装中..."
-                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
-                holder.statusBadge.visibility = View.GONE
-                holder.progressContainer.visibility = View.GONE
-            }
-            downloadState?.isDownloading == true -> {
-                holder.statusText.text = "下载中..."
-                holder.statusText.setTextColor(context.getColor(android.R.color.holo_orange_dark))
-                holder.statusBadge.visibility = View.GONE
-                holder.progressContainer.visibility = View.VISIBLE
-                holder.downloadProgress.progress = downloadState.progress
-                holder.progressText.text = "${downloadState.progress}%"
-            }
-            else -> {
-                holder.statusText.text = "点击下载"
-                holder.statusText.setTextColor(context.getColor(android.R.color.holo_blue_dark))
-                holder.statusBadge.visibility = View.GONE
-                holder.progressContainer.visibility = View.GONE
-                viewHolders.remove(app.packageName)
-            }
-        }
+        bindStatus(holder, app, isInstalled, downloadState)
+        bindActions(holder, app, isInstalled, downloadState)
     }
 
     override fun getItemCount() = apps.size

@@ -58,11 +58,19 @@
         <TextView
                 android:id="@+id/status_text"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textSize="11sp"
-                android:textColor="#4CAF50"
-                android:text="点击下载"
+                android:layout_height="32dp"
+                android:layout_marginTop="8dp"
+                android:minWidth="72dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:background="@drawable/app_icon_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#1976D2"
+                android:text="下载"
                 android:visibility="visible" />
 
         <!-- Download Progress -->

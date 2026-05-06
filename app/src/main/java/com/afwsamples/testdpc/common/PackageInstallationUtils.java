@@ -50,14 +50,15 @@ public class PackageInstallationUtils {
     params.setAppPackageName(packageName);
     final int sessionId = packageInstaller.createSession(params);
     boolean commitSent = false;
-    try (PackageInstaller.Session session = packageInstaller.openSession(sessionId);
-        OutputStream out = session.openWrite("TestDPC", 0, -1)) {
-      final byte[] buffer = new byte[65536];
-      int c;
-      while ((c = in.read(buffer)) != -1) {
-        out.write(buffer, 0, c);
+    try (PackageInstaller.Session session = packageInstaller.openSession(sessionId)) {
+      try (OutputStream out = session.openWrite("TestDPC", 0, -1)) {
+        final byte[] buffer = new byte[65536];
+        int c;
+        while ((c = in.read(buffer)) != -1) {
+          out.write(buffer, 0, c);
+        }
+        session.fsync(out);
       }
-      session.fsync(out);
       session.commit(createInstallIntentSender(context, sessionId, packageName, installSource));
       commitSent = true;
       return true;
