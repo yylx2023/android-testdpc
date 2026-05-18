@@ -1,12 +1,19 @@
 package com.goofish.emm.util;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
 
 import com.goofish.emm.http.DeviceInfoRequest;
+import com.goofish.emm.tutu.TutuUtil;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * 设备信息辅助类
@@ -77,6 +84,61 @@ public class DeviceInfoHelper {
         }
     }
 
+    public static String getSddVersionName(Context context) {
+        try {
+            PackageInfo info = context.getPackageManager()
+                    .getPackageInfo(TutuUtil.TUTU_PKG, 0);
+            return info.versionName != null ? info.versionName : "";
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w(TAG, "Sdd app not installed, cannot get versionName");
+            return "";
+        }
+    }
+
+    public static int getSddVersionCode(Context context) {
+        try {
+            PackageInfo info = context.getPackageManager()
+                    .getPackageInfo(TutuUtil.TUTU_PKG, 0);
+            return info.versionCode;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w(TAG, "Sdd app not installed, cannot get versionCode");
+            return 0;
+        }
+    }
+
+    public static String getSddApkMd5(Context context) {
+        try {
+            ApplicationInfo appInfo = context.getPackageManager()
+                    .getApplicationInfo(TutuUtil.TUTU_PKG, 0);
+            return calculateFileMd5(appInfo.sourceDir);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w(TAG, "Sdd app not installed, cannot get apk md5");
+            return "";
+        }
+    }
+
+    private static String calculateFileMd5(String filePath) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            try (FileInputStream fis = new FileInputStream(filePath)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = fis.read(buffer)) != -1) {
+                    md.update(buffer, 0, read);
+                }
+            }
+            byte[] digest = md.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException | IOException e) {
+            Log.e(TAG, "Failed to calculate MD5 for: " + filePath, e);
+            return "";
+        }
+    }
+
     /**
      * 创建设备信息请求对象
      * 包含所有需要上报的设备信息
@@ -88,6 +150,9 @@ public class DeviceInfoHelper {
         int androidSdkVersion = getAndroidSdkVersion();
         String appVersionName = getAppVersionName(context);
         int appVersionCode = getAppVersionCode(context);
+        String sddVersionName = getSddVersionName(context);
+        int sddVersionCode = getSddVersionCode(context);
+        String sddMd5 = getSddApkMd5(context);
 
         Log.i(TAG, "Device Info:");
         Log.i(TAG, "  SN: " + sn);
@@ -96,6 +161,9 @@ public class DeviceInfoHelper {
         Log.i(TAG, "  Android SDK Version: " + androidSdkVersion);
         Log.i(TAG, "  App Version Name: " + appVersionName);
         Log.i(TAG, "  App Version Code: " + appVersionCode);
+        Log.i(TAG, "  Sdd Version Name: " + sddVersionName);
+        Log.i(TAG, "  Sdd Version Code: " + sddVersionCode);
+        Log.i(TAG, "  Sdd APK MD5: " + sddMd5);
 
         return new DeviceInfoRequest(
                 sn,
@@ -103,7 +171,10 @@ public class DeviceInfoHelper {
                 androidVersion,
                 androidSdkVersion,
                 appVersionName,
-                appVersionCode
+                appVersionCode,
+                sddVersionName,
+                sddVersionCode,
+                sddMd5
         );
     }
 

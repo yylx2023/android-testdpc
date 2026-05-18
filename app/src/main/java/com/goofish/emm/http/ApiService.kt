@@ -56,7 +56,10 @@ data class DeviceInfoRequest(
     val androidVersion: String,
     val androidSdkVersion: Int,
     val appVersionName: String,
-    val appVersionCode: Int
+    val appVersionCode: Int,
+    val sddVersionName: String,
+    val sddVersionCode: Int,
+    val sddMd5: String
 )
 
 @Keep
